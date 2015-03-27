@@ -17,7 +17,9 @@
 -- which must be commutative.
 -----------------------------------------------------------------------------
 
-module Control.Monad.Trans.List (
+module Control.Monad.Trans.List
+  {-# DEPRECATED "Use the 'list-t' or 'pipes' packages instead" #-}
+  (
     -- * The ListT monad transformer
     ListT(..),
     mapListT,
