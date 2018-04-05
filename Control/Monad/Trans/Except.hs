@@ -206,6 +206,17 @@ instance (Functor m, Monad m, Monoid e) => Alternative (ExceptT e m) where
             Right x -> return (Right x)
     {-# INLINEABLE (<|>) #-}
 
+#if MIN_VERSION_base(4,11,0)
+instance (Monad m, Monoid a) => Semigroup (ExceptT e m a) where
+    (<>) = liftA2 (<>)
+instance (Monad m, Monoid a) => Monoid (ExceptT e m a) where
+    mempty = pure mempty
+#else
+instance (Monad m, Monoid a) => Monoid (ExceptT e m a) where
+    mempty = pure mempty
+    mappend = liftA2 mappend
+#endif
+
 instance (Monad m) => Monad (ExceptT e m) where
 #if !(MIN_VERSION_base(4,8,0))
     return a = ExceptT $ return (Right a)
