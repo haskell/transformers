@@ -26,8 +26,12 @@
 -- This version builds its output strictly; for a lazy version with
 -- the same interface, see "Control.Monad.Trans.Writer.Lazy".
 -- Although the output is built strictly, it is not possible to
--- achieve constant space behaviour with this transformer: for that,
--- use "Control.Monad.Trans.State.Strict" instead.
+-- achieve constant-space behaviour with this transformer: for that,
+-- use "Control.Monad.Trans.State.Strict" instead. Alternatively,
+-- "Control.Monad.Trans.Accum.Strict" can be used to achieve
+-- constant-space behaviour but with an interface much closer to
+-- the one provided here. Notably, 'AccumT'\'s strict @tell\'@ should
+-- replace uses of 'WriterT'\'s lazy 'tell'.
 -----------------------------------------------------------------------------
 
 module Control.Monad.Trans.Writer.Strict (

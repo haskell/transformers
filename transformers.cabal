@@ -67,6 +67,7 @@ library
     Control.Applicative.Lift
     Control.Monad.Signatures
     Control.Monad.Trans.Accum
+    Control.Monad.Trans.Accum.Strict
     Control.Monad.Trans.Class
     Control.Monad.Trans.Cont
     Control.Monad.Trans.Except
