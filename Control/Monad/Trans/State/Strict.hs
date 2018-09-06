@@ -209,10 +209,10 @@ instance (Functor m, Monad m) => Applicative (StateT s m) where
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 
-instance (Functor m, MonadPlus m) => Alternative (StateT s m) where
-    empty = StateT $ \ _ -> mzero
+instance (Alternative m, Monad m) => Alternative (StateT s m) where
+    empty = StateT $ const empty
     {-# INLINE empty #-}
-    StateT m <|> StateT n = StateT $ \ s -> m s `mplus` n s
+    StateT m <|> StateT n = StateT $ \ s -> m s <|> n s
     {-# INLINE (<|>) #-}
 
 instance (Monad m) => Monad (StateT s m) where
