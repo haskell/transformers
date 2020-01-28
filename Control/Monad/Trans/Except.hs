@@ -183,30 +183,19 @@ instance (Traversable f) => Traversable (ExceptT e f) where
         ExceptT <$> traverse (either (pure . Left) (fmap Right . f)) a
     {-# INLINE traverse #-}
 
-instance (Functor m, Monad m) => Applicative (ExceptT e m) where
-    pure a = ExceptT $ return (Right a)
+instance (Applicative p) => Applicative (ExceptT e p) where
+    pure = ExceptT . pure . Right
     {-# INLINE pure #-}
-    ExceptT f <*> ExceptT v = ExceptT $ do
-        mf <- f
-        case mf of
-            Left e -> return (Left e)
-            Right k -> do
-                mv <- v
-                case mv of
-                    Left e -> return (Left e)
-                    Right x -> return (Right (k x))
+    ExceptT f <*> ExceptT x = ExceptT (liftA2 (<*>) f x)
     {-# INLINEABLE (<*>) #-}
-    m *> k = m >>= \_ -> k
-    {-# INLINE (*>) #-}
 
-instance (Functor m, Monad m, Monoid e) => Alternative (ExceptT e m) where
-    empty = ExceptT $ return (Left mempty)
+instance (Applicative p, Monoid e) => Alternative (ExceptT e p) where
+    empty = ExceptT $ pure (Left mempty)
     {-# INLINE empty #-}
-    ExceptT mx <|> ExceptT my = ExceptT $ do
-        ex <- mx
-        case ex of
-            Left e -> liftM (either (Left . mappend e) Right) my
-            Right x -> return (Right x)
+    ExceptT x <|> ExceptT y = ExceptT (liftA2 go x y)
+        where Right x `go` _       = Right x
+              _       `go` Right y = Right y
+              Left  u `go` Left  v = Left (u <> v)
     {-# INLINEABLE (<|>) #-}
 
 instance (Monad m) => Monad (ExceptT e m) where
