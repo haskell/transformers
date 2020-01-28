@@ -139,8 +139,8 @@ newtype ContT r m a = ContT { runContT :: (a -> m r) -> m r }
 -- final continuation.
 --
 -- * @'evalContT' ('lift' m) = m@
-evalContT :: (Monad m) => ContT r m r -> m r
-evalContT m = runContT m return
+evalContT :: (Applicative m) => ContT r m r -> m r
+evalContT = flip runContT pure
 {-# INLINE evalContT #-}
 
 -- | Apply a function to transform the result of a continuation-passing
@@ -227,7 +227,7 @@ resetT = lift . evalContT
 --
 -- * @'resetT' ('shiftT' f >>= k) = 'resetT' (f ('evalContT' . k))@
 --
-shiftT :: (Monad m) => ((a -> m r) -> ContT r m r) -> ContT r m a
+shiftT :: (Applicative m) => ((a -> m r) -> ContT r m r) -> ContT r m a
 shiftT f = ContT (evalContT . f)
 {-# INLINE shiftT #-}
 

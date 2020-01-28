@@ -225,17 +225,13 @@ liftCatch f m h = MaybeT $ f (runMaybeT m) (runMaybeT . h)
 {-# INLINE liftCatch #-}
 
 -- | Lift a @listen@ operation to the new monad.
-liftListen :: (Monad m) => Listen w m (Maybe a) -> Listen w (MaybeT m) a
-liftListen listen = mapMaybeT $ \ m -> do
-    (a, w) <- listen m
-    return $! fmap (\ r -> (r, w)) a
+liftListen :: (Functor m) => Listen w m (Maybe a) -> Listen w (MaybeT m) a
+liftListen listen = mapMaybeT $ fmap (\ (a, w) -> flip (,) w <$> a) . listen
 {-# INLINE liftListen #-}
 
 -- | Lift a @pass@ operation to the new monad.
-liftPass :: (Monad m) => Pass w m (Maybe a) -> Pass w (MaybeT m) a
-liftPass pass = mapMaybeT $ \ m -> pass $ do
-    a <- m
-    return $! case a of
-        Nothing     -> (Nothing, id)
-        Just (v, f) -> (Just v, f)
+liftPass :: (Functor m) => Pass w m (Maybe a) -> Pass w (MaybeT m) a
+liftPass pass = mapMaybeT $ \ m -> pass $ flip fmap m $ \ a -> case a of
+    Nothing     -> (Nothing, id)
+    Just (v, f) -> (Just v, f)
 {-# INLINE liftPass #-}

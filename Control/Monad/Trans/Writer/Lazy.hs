@@ -81,8 +81,8 @@ type Writer w = WriterT w Identity
 
 -- | Construct a writer computation from a (result, output) pair.
 -- (The inverse of 'runWriter'.)
-writer :: (Monad m) => (a, w) -> WriterT w m a
-writer = WriterT . return
+writer :: (Applicative m) => (a, w) -> WriterT w m a
+writer = WriterT . pure
 {-# INLINE writer #-}
 
 -- | Unwrap a writer computation as a (result, output) pair.
@@ -150,10 +150,8 @@ instance (Show w, Show1 m, Show a) => Show (WriterT w m a) where
 -- | Extract the output from a writer computation.
 --
 -- * @'execWriterT' m = 'liftM' 'snd' ('runWriterT' m)@
-execWriterT :: (Monad m) => WriterT w m a -> m w
-execWriterT m = do
-    ~(_, w) <- runWriterT m
-    return w
+execWriterT :: (Functor m) => WriterT w m a -> m w
+execWriterT = fmap snd . runWriterT
 {-# INLINE execWriterT #-}
 
 -- | Map both the return value and output of a computation using
@@ -249,7 +247,7 @@ instance Contravariant m => Contravariant (WriterT w m) where
 #endif
 
 -- | @'tell' w@ is an action that produces the output @w@.
-tell :: (Monad m) => w -> WriterT w m ()
+tell :: (Applicative m) => w -> WriterT w m ()
 tell w = writer ((), w)
 {-# INLINE tell #-}
 
@@ -257,10 +255,8 @@ tell w = writer ((), w)
 -- output to the value of the computation.
 --
 -- * @'runWriterT' ('listen' m) = 'liftM' (\\ (a, w) -> ((a, w), w)) ('runWriterT' m)@
-listen :: (Monad m) => WriterT w m a -> WriterT w m (a, w)
-listen m = WriterT $ do
-    ~(a, w) <- runWriterT m
-    return ((a, w), w)
+listen :: (Functor m) => WriterT w m a -> WriterT w m (a, w)
+listen = mapWriterT . fmap $ \ ~(a, w) -> ((a, w), w)
 {-# INLINE listen #-}
 
 -- | @'listens' f m@ is an action that executes the action @m@ and adds
@@ -269,10 +265,8 @@ listen m = WriterT $ do
 -- * @'listens' f m = 'liftM' (id *** f) ('listen' m)@
 --
 -- * @'runWriterT' ('listens' f m) = 'liftM' (\\ (a, w) -> ((a, f w), w)) ('runWriterT' m)@
-listens :: (Monad m) => (w -> b) -> WriterT w m a -> WriterT w m (a, b)
-listens f m = WriterT $ do
-    ~(a, w) <- runWriterT m
-    return ((a, f w), w)
+listens :: (Functor m) => (w -> b) -> WriterT w m a -> WriterT w m (a, b)
+listens f = mapWriterT . fmap $ \ ~(a, w) -> ((a, f w), w)
 {-# INLINE listens #-}
 
 -- | @'pass' m@ is an action that executes the action @m@, which returns
@@ -280,10 +274,8 @@ listens f m = WriterT $ do
 -- to the output.
 --
 -- * @'runWriterT' ('pass' m) = 'liftM' (\\ ((a, f), w) -> (a, f w)) ('runWriterT' m)@
-pass :: (Monad m) => WriterT w m (a, w -> w) -> WriterT w m a
-pass m = WriterT $ do
-    ~((a, f), w) <- runWriterT m
-    return (a, f w)
+pass :: (Functor m) => WriterT w m (a, w -> w) -> WriterT w m a
+pass = mapWriterT . fmap $ \ ~((a, f), w) -> (a, f w)
 {-# INLINE pass #-}
 
 -- | @'censor' f m@ is an action that executes the action @m@ and
@@ -293,10 +285,8 @@ pass m = WriterT $ do
 -- * @'censor' f m = 'pass' ('liftM' (\\ x -> (x,f)) m)@
 --
 -- * @'runWriterT' ('censor' f m) = 'liftM' (\\ (a, w) -> (a, f w)) ('runWriterT' m)@
-censor :: (Monad m) => (w -> w) -> WriterT w m a -> WriterT w m a
-censor f m = WriterT $ do
-    ~(a, w) <- runWriterT m
-    return (a, f w)
+censor :: (Functor m) => (w -> w) -> WriterT w m a -> WriterT w m a
+censor = mapWriterT . fmap . fmap
 {-# INLINE censor #-}
 
 -- | Lift a @callCC@ operation to the new monad.

@@ -271,8 +271,8 @@ instance Contravariant m => Contravariant (ExceptT e m) where
 -- * @'runExceptT' ('throwE' e) = 'return' ('Left' e)@
 --
 -- * @'throwE' e >>= m = 'throwE' e@
-throwE :: (Monad m) => e -> ExceptT e m a
-throwE = ExceptT . return . Left
+throwE :: (Applicative m) => e -> ExceptT e m a
+throwE = ExceptT . pure . Left
 {-# INLINE throwE #-}
 
 -- | Handle an exception.
@@ -300,17 +300,13 @@ liftCallCC callCC f = ExceptT $
 {-# INLINE liftCallCC #-}
 
 -- | Lift a @listen@ operation to the new monad.
-liftListen :: (Monad m) => Listen w m (Either e a) -> Listen w (ExceptT e m) a
-liftListen listen = mapExceptT $ \ m -> do
-    (a, w) <- listen m
-    return $! fmap (\ r -> (r, w)) a
+liftListen :: (Functor m) => Listen w m (Either e a) -> Listen w (ExceptT e m) a
+liftListen listen = mapExceptT $ fmap (\ (a, w) -> flip (,) w <$> a) . listen
 {-# INLINE liftListen #-}
 
 -- | Lift a @pass@ operation to the new monad.
-liftPass :: (Monad m) => Pass w m (Either e a) -> Pass w (ExceptT e m) a
-liftPass pass = mapExceptT $ \ m -> pass $ do
-    a <- m
-    return $! case a of
-        Left l -> (Left l, id)
-        Right (r, f) -> (Right r, f)
+liftPass :: (Functor m) => Pass w m (Either e a) -> Pass w (ExceptT e m) a
+liftPass pass = mapExceptT $ \ m -> pass $ flip fmap m $ \ a -> case a of
+    Left l -> (Left l, id)
+    Right (r, f) -> (Right r, f)
 {-# INLINE liftPass #-}

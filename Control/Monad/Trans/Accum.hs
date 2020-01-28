@@ -59,6 +59,7 @@ import Control.Monad.Trans.Reader (ReaderT(..))
 import Control.Monad.Trans.Writer (WriterT(..))
 import Control.Monad.Trans.State  (StateT(..))
 import Data.Functor.Identity
+import Data.Tuple (swap)
 
 import Control.Applicative
 import Control.Monad
@@ -80,8 +81,8 @@ type Accum w = AccumT w Identity
 
 -- | Construct an accumulation computation from a (result, output) pair.
 -- (The inverse of 'runAccum'.)
-accum :: (Monad m) => (w -> (a, w)) -> AccumT w m a
-accum f = AccumT $ \ w -> return (f w)
+accum :: (Applicative m) => (w -> (a, w)) -> AccumT w m a
+accum = AccumT . fmap pure
 {-# INLINE accum #-}
 
 -- | Unwrap an accumulation computation as a (result, output) pair.
@@ -138,21 +139,17 @@ runAccumT (AccumT f) = f
 
 -- | Extract the output from an accumulation computation.
 --
--- * @'execAccumT' m w = 'liftM' 'snd' ('runAccumT' m w)@
-execAccumT :: (Monad m) => AccumT w m a -> w -> m w
-execAccumT m w = do
-    ~(_, w') <- runAccumT m w
-    return w'
+-- * @'execAccumT' m w = 'snd' '<$>' 'runAccumT' m w@
+execAccumT :: (Functor m) => AccumT w m a -> w -> m w
+execAccumT m w = snd <$> runAccumT m w
 {-# INLINE execAccumT #-}
 
 -- | Evaluate an accumulation computation with the given initial output history
 -- and return the final value, discarding the final output.
 --
--- * @'evalAccumT' m w = 'liftM' 'fst' ('runAccumT' m w)@
-evalAccumT :: (Monad m, Monoid w) => AccumT w m a -> w -> m a
-evalAccumT m w = do
-    ~(a, _) <- runAccumT m w
-    return a
+-- * @'evalAccumT' m w = 'fst' '<$>' 'runAccumT' m w@
+evalAccumT :: (Functor m) => AccumT w m a -> w -> m a
+evalAccumT m w = fst <$> runAccumT m w
 {-# INLINE evalAccumT #-}
 
 -- | Map both the return value and output of a computation using
@@ -167,19 +164,17 @@ instance (Functor m) => Functor (AccumT w m) where
     fmap f = mapAccumT $ fmap $ \ ~(a, w) -> (f a, w)
     {-# INLINE fmap #-}
 
-instance (Monoid w, Functor m, Monad m) => Applicative (AccumT w m) where
-    pure a  = AccumT $ const $ return (a, mempty)
+instance (Monoid w, Applicative p) => Applicative (AccumT w p) where
+    pure a  = AccumT $ const $ pure (a, mempty)
     {-# INLINE pure #-}
-    mf <*> mv = AccumT $ \ w -> do
-      ~(f, w')  <- runAccumT mf w
-      ~(v, w'') <- runAccumT mv (w `mappend` w')
-      return (f v, w' `mappend` w'')
+    AccumT f <*> AccumT x = AccumT (swap' $ (liftA2 . liftA2) (<*>) (swap' f) (swap' x))
+      where swap' = (fmap . fmap) swap
     {-# INLINE (<*>) #-}
 
-instance (Monoid w, Functor m, MonadPlus m) => Alternative (AccumT w m) where
-    empty   = AccumT $ const mzero
+instance (Monoid w, Alternative p) => Alternative (AccumT w p) where
+    empty   = AccumT $ const empty
     {-# INLINE empty #-}
-    m <|> n = AccumT $ \ w -> runAccumT m w `mplus` runAccumT n w
+    AccumT x <|> AccumT y = AccumT (liftA2 (<|>) x y)
     {-# INLINE (<|>) #-}
 
 instance (Monoid w, Functor m, Monad m) => Monad (AccumT w m) where
@@ -224,15 +219,15 @@ instance (Monoid w, Functor m, MonadIO m) => MonadIO (AccumT w m) where
     {-# INLINE liftIO #-}
 
 -- | @'look'@ is an action that fetches all the previously accumulated output.
-look :: (Monoid w, Monad m) => AccumT w m w
-look = AccumT $ \ w -> return (w, mempty)
+look :: (Monoid w, Applicative m) => AccumT w m w
+look = AccumT $ \ w -> pure (w, mempty)
 
 -- | @'look'@ is an action that retrieves a function of the previously accumulated output.
-looks :: (Monoid w, Monad m) => (w -> a) -> AccumT w m a
-looks f = AccumT $ \ w -> return (f w, mempty)
+looks :: (Monoid w, Applicative m) => (w -> a) -> AccumT w m a
+looks f = AccumT $ \ w -> pure (f w, mempty)
 
 -- | @'add' w@ is an action that produces the output @w@.
-add :: (Monad m) => w -> AccumT w m ()
+add :: (Applicative m) => w -> AccumT w m ()
 add w = accum $ const ((), w)
 {-# INLINE add #-}
 
@@ -261,17 +256,14 @@ liftCatch catchE m h =
 {-# INLINE liftCatch #-}
 
 -- | Lift a @listen@ operation to the new monad.
-liftListen :: (Monad m) => Listen w m (a, s) -> Listen w (AccumT s m) a
-liftListen listen m = AccumT $ \ s -> do
-    ~((a, s'), w) <- listen (runAccumT m s)
-    return ((a, w), s')
+liftListen :: (Functor m) => Listen w m (a, s) -> Listen w (AccumT s m) a
+liftListen listen m = AccumT $ \ s ->
+    (\ ~((a, s'), w) -> ((a, w), s')) <$> listen (runAccumT m s)
 {-# INLINE liftListen #-}
 
 -- | Lift a @pass@ operation to the new monad.
-liftPass :: (Monad m) => Pass w m (a, s) -> Pass w (AccumT s m) a
-liftPass pass m = AccumT $ \ s -> pass $ do
-    ~((a, f), s') <- runAccumT m s
-    return ((a, s'), f)
+liftPass :: (Functor m) => Pass w m (a, s) -> Pass w (AccumT s m) a
+liftPass pass m = AccumT $ \ s -> pass $ (\ ~((a, f), s') -> ((a, s'), f)) <$> runAccumT m s
 {-# INLINE liftPass #-}
 
 -- | Convert a read-only computation into an accumulation computation.

@@ -106,7 +106,7 @@ instance (Functor m, Monad m) => Applicative (SelectT r m) where
     pure = lift . return
     {-# INLINE pure #-}
     SelectT gf <*> SelectT gx = SelectT $ \ k -> do
-        let h f = liftM f (gx (k . f))
+        let h f = f <$> gx (k . f)
         f <- gf ((>>= k) . h)
         h f
     {-# INLINE (<*>) #-}
