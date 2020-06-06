@@ -70,9 +70,7 @@ library
     Control.Monad.Trans.Class
     Control.Monad.Trans.Cont
     Control.Monad.Trans.Except
-    Control.Monad.Trans.Error
     Control.Monad.Trans.Identity
-    Control.Monad.Trans.List
     Control.Monad.Trans.Maybe
     Control.Monad.Trans.Reader
     Control.Monad.Trans.RWS
