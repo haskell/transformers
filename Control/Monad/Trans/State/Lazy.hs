@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -87,6 +88,9 @@ import Control.Monad
 import qualified Control.Monad.Fail as Fail
 #endif
 import Control.Monad.Fix
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- ---------------------------------------------------------------------------
 -- | A state monad parameterized by the type @s@ of the state to carry.
@@ -159,6 +163,9 @@ withState = withStateT
 -- the final state of the first computation as the initial state of
 -- the second.
 newtype StateT s m a = StateT { runStateT :: s -> m (a,s) }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
+#endif
 
 -- | Evaluate a state computation with the given initial state
 -- and return the final value, discarding the final state.

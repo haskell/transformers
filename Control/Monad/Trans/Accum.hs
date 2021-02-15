@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -70,6 +71,9 @@ import Control.Monad.Signatures
 #if !MIN_VERSION_base(4,8,0)
 import Data.Monoid
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- ---------------------------------------------------------------------------
 -- | An accumulation monad parameterized by the type @w@ of output to accumulate.
@@ -130,6 +134,9 @@ mapAccum f = mapAccumT (Identity . f . runIdentity)
 --
 --  * a writer monad transformer with the extra ability to read all previous output.
 newtype AccumT w m a = AccumT (w -> m (a, w))
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
+#endif
 
 -- | Unwrap an accumulation computation.
 runAccumT :: AccumT w m a -> w -> m (a, w)

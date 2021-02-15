@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -71,6 +72,9 @@ import Data.Foldable
 import Data.Monoid
 import Data.Traversable (Traversable(traverse))
 import Prelude hiding (null, length)
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- ---------------------------------------------------------------------------
 -- | A writer monad parameterized by the type @w@ of output to accumulate.
@@ -116,6 +120,9 @@ mapWriter f = mapWriterT (Identity . f . runIdentity)
 -- The 'return' function produces the output 'mempty', while @>>=@
 -- combines the outputs of the subcomputations using 'mappend'.
 newtype WriterT w m a = WriterT { runWriterT :: m (a, w) }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
+#endif
 
 instance (Eq w, Eq1 m) => Eq1 (WriterT w m) where
     liftEq eq (WriterT m1) (WriterT m2) = liftEq (liftEq2 eq (==)) m1 m2

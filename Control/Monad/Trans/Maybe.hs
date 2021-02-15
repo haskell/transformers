@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -61,6 +62,9 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Foldable (Foldable(foldMap))
 import Data.Maybe (fromMaybe)
 import Data.Traversable (Traversable(traverse))
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | The parameterizable maybe monad, obtained by composing an arbitrary
 -- monad with the 'Maybe' monad.
@@ -71,6 +75,9 @@ import Data.Traversable (Traversable(traverse))
 -- value, while @>>=@ sequences two subcomputations, exiting if either
 -- computation does.
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq1 m) => Eq1 (MaybeT m) where
     liftEq eq (MaybeT x) (MaybeT y) = liftEq (liftEq eq) x y

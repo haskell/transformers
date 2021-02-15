@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
@@ -54,6 +55,9 @@ import Control.Monad
 import qualified Control.Monad.Fail as Fail
 #endif
 import Data.Functor.Identity
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | Selection monad.
 type Select r = SelectT r Identity
@@ -81,6 +85,9 @@ mapSelect f = mapSelectT (Identity . f . runIdentity)
 -- 'SelectT' is not a functor on the category of monads, and many operations
 -- cannot be lifted through it.
 newtype SelectT r m a = SelectT ((a -> m r) -> m a)
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
+#endif
 
 -- | Runs a @SelectT@ computation with a function for evaluating answers
 -- to select a particular answer.  (The inverse of 'select'.)

@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -66,6 +67,9 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 #if MIN_VERSION_base(4,2,0)
 import Data.Functor(Functor(..))
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | The parameterizable reader monad.
 --
@@ -113,6 +117,9 @@ withReader = withReaderT
 -- The 'return' function ignores the environment, while @>>=@ passes
 -- the inherited environment to both subcomputations.
 newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 -- | Transform the computation inside a @ReaderT@.
 --

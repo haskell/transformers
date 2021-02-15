@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -68,6 +69,9 @@ import Data.Monoid
 #if MIN_VERSION_base(4,9,0)
 import qualified Control.Monad.Fail as Fail
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- ---------------------------------------------------------------------------
 -- | A writer monad parameterized by the type @w@ of output to accumulate.
@@ -116,6 +120,9 @@ mapWriter f = mapWriterT (Identity . f . runIdentity)
 -- combines the outputs of the subcomputations using 'mappend'.
 
 newtype WriterT w m a = WriterT { unWriterT :: w -> m (a, w) }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
+#endif
 
 -- | Construct a writer computation from a (result, output) computation.
 -- (The inverse of 'runWriterT'.)

@@ -1,6 +1,10 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 608
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
@@ -45,10 +49,23 @@ import Data.Bifoldable (Bifoldable(..))
 import Data.Bitraversable (Bitraversable(..))
 #endif
 import Prelude hiding (null, length)
+#if __GLASGOW_HASKELL__ >= 702
+import Data.Data
+#endif
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | Constant functor.
 newtype Constant a b = Constant { getConstant :: a }
-    deriving (Eq, Ord)
+    deriving (Eq, Ord
+#if __GLASGOW_HASKELL__ >= 608
+        , Data
+#endif
+#if __GLASGOW_HASKELL__ >= 702
+        , Generic, Generic1
+#endif
+        )
 
 -- These instances would be equivalent to the derived instances of the
 -- newtype if the field were removed.

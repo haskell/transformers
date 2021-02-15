@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
@@ -30,6 +31,9 @@ import Data.Functor.Classes
 #if MIN_VERSION_base(4,12,0)
 import Data.Functor.Contravariant
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
 import Control.Applicative
@@ -39,6 +43,9 @@ import Data.Traversable
 -- | The same functor, but with an 'Applicative' instance that performs
 -- actions in the reverse order.
 newtype Backwards f a = Backwards { forwards :: f a }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq1 f) => Eq1 (Backwards f) where
     liftEq eq (Backwards x) (Backwards y) = liftEq eq x y

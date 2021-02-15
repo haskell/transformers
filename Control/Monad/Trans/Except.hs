@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -68,6 +69,9 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Foldable (Foldable(foldMap))
 import Data.Monoid
 import Data.Traversable (Traversable(traverse))
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | The parameterizable exception monad.
 --
@@ -117,6 +121,9 @@ withExcept = withExceptT
 -- value, while @>>=@ sequences two subcomputations, exiting on the
 -- first exception.
 newtype ExceptT e m a = ExceptT (m (Either e a))
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq e, Eq1 m) => Eq1 (ExceptT e m) where
     liftEq eq (ExceptT x) (ExceptT y) = liftEq (liftEq eq) x y

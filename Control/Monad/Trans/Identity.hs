@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
@@ -52,9 +53,15 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Foldable
 import Data.Traversable (Traversable(traverse))
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | The trivial monad transformer, which maps a monad to an equivalent monad.
 newtype IdentityT f a = IdentityT { runIdentityT :: f a }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq1 f) => Eq1 (IdentityT f) where
     liftEq eq (IdentityT x) (IdentityT y) = liftEq eq x y

@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
@@ -38,10 +39,16 @@ import Data.Foldable (Foldable(foldMap))
 import Data.Functor.Constant
 import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(traverse))
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | Applicative functor formed by adding pure computations to a given
 -- applicative functor.
 data Lift f a = Pure a | Other (f a)
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq1 f) => Eq1 (Lift f) where
     liftEq eq (Pure x1) (Pure x2) = eq x1 x2

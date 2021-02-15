@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
@@ -41,10 +42,16 @@ import qualified Control.Monad.Fail as Fail
 import Data.Foldable
 import Data.Traversable
 import Data.Monoid
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 -- | The same functor, but with 'Foldable' and 'Traversable' instances
 -- that process the elements in the reverse order.
 newtype Reverse f a = Reverse { getReverse :: f a }
+#if __GLASGOW_HASKELL__ >= 702
+    deriving (Generic, Generic1)
+#endif
 
 instance (Eq1 f) => Eq1 (Reverse f) where
     liftEq eq (Reverse x) (Reverse y) = liftEq eq x y
