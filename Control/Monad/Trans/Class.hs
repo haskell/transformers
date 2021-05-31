@@ -1,4 +1,8 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
+#endif
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Safe #-}
 #endif
@@ -46,16 +50,27 @@ module Control.Monad.Trans.Class (
     -- $example3
   ) where
 
--- | The class of monad transformers.  Instances should satisfy the
+import Data.Kind
+
+-- | The class of monad transformers. Instances should satisfy the
 -- following laws, which state that 'lift' is a monad transformation:
 --
 -- * @'lift' . 'return' = 'return'@
 --
 -- * @'lift' (m >>= f) = 'lift' m >>= ('lift' . f)@
-
+--
+-- A transformed @'Monad' m@ should itself be a @'Monad' (t m)@. Since
+-- 0.5.6.3 this has been guaranteed by the implication constraint
+-- @forall m. 'Monad' m => 'Monad' (t m)@ enabled by the
+-- @QuantifiedConstraints@ extension.
+#if __GLASGOW_HASKELL__ >= 806
+type  MonadTrans :: ((Type -> Type) -> (Type -> Type)) -> Constraint
+class (forall m. Monad m => Monad (t m)) => MonadTrans t where
+#else
 class MonadTrans t where
+#endif
     -- | Lift a computation from the argument monad to the constructed monad.
-    lift :: (Monad m) => m a -> t m a
+    lift :: Monad m => m a -> t m a
 
 {- $conventions
 Most monad transformer modules include the special case of applying
