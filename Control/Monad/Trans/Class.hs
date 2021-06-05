@@ -5,6 +5,9 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Class
@@ -46,14 +49,24 @@ module Control.Monad.Trans.Class (
     -- $example3
   ) where
 
--- | The class of monad transformers.  Instances should satisfy the
--- following laws, which state that 'lift' is a monad transformation:
+-- | The class of monad transformers.
+-- For any monad @m@, the result @t m@ should also be a monad,
+-- and 'lift' should be a monad transformation from @m@ to @t m@,
+-- i.e. it should satisfy the following laws:
 --
 -- * @'lift' . 'return' = 'return'@
 --
 -- * @'lift' (m >>= f) = 'lift' m >>= ('lift' . f)@
-
+--
+-- Since 0.6.0.0, the requirement that @t m@ be a 'Monad' is enforced
+-- by the implication constraint @forall m. 'Monad' m => 'Monad' (t m)@
+-- enabled by the @QuantifiedConstraints@ extension (present in GHC 8.6
+-- and later).
+#if __GLASGOW_HASKELL__ >= 806
+class (forall m. Monad m => Monad (t m)) => MonadTrans t where
+#else
 class MonadTrans t where
+#endif
     -- | Lift a computation from the argument monad to the constructed monad.
     lift :: (Monad m) => m a -> t m a
 
