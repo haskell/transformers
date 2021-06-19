@@ -42,7 +42,6 @@ module Control.Monad.Trans.Select (
     mapSelectT,
     -- * Monad transformation
     selectToContT,
-    selectToCont,
     ) where
 
 import Control.Monad.IO.Class
@@ -160,9 +159,4 @@ instance (MonadIO m) => MonadIO (SelectT r m) where
 -- | Convert a selection computation to a continuation-passing computation.
 selectToContT :: (Monad m) => SelectT r m a -> ContT r m a
 selectToContT (SelectT g) = ContT $ \ k -> g k >>= k
-{-# INLINE selectToCont #-}
-
--- | Deprecated name for 'selectToContT'.
-{-# DEPRECATED selectToCont "Use selectToContT instead" #-}
-selectToCont :: (Monad m) => SelectT r m a -> ContT r m a
-selectToCont = selectToContT
+{-# INLINE selectToContT #-}
