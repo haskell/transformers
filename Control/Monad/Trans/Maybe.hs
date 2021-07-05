@@ -32,6 +32,7 @@ module Control.Monad.Trans.Maybe (
     MaybeT(..),
     mapMaybeT,
     -- * Monad transformations
+    hoistMaybe,
     maybeToExceptT,
     exceptToMaybeT,
     -- * Lifting other operations
@@ -112,6 +113,10 @@ instance (Show1 m, Show a) => Show (MaybeT m a) where showsPrec = showsPrec1
 mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
 mapMaybeT f = MaybeT . f . runMaybeT
 {-# INLINE mapMaybeT #-}
+
+-- | Convert a 'Maybe' computation to 'MaybeT'.
+hoistMaybe :: (Applicative m) => Maybe b -> MaybeT m b
+hoistMaybe = MaybeT . pure
 
 -- | Convert a 'MaybeT' computation to 'ExceptT', with a default
 -- exception value.
