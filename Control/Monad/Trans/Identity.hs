@@ -61,8 +61,10 @@ import GHC.Generics
 
 -- | The trivial monad transformer, which maps a monad to an equivalent monad.
 newtype IdentityT f a = IdentityT { runIdentityT :: f a }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
+#elif __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
 #endif
 
 instance (Eq1 f) => Eq1 (IdentityT f) where

@@ -45,8 +45,10 @@ import Data.Traversable (Traversable(traverse, sequenceA))
 -- | The same functor, but with an 'Applicative' instance that performs
 -- actions in the reverse order.
 newtype Backwards f a = Backwards { forwards :: f a }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
+#elif __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
 #endif
 
 instance (Eq1 f) => Eq1 (Backwards f) where

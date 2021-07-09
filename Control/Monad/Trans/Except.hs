@@ -126,8 +126,10 @@ withExcept = withExceptT
 -- value, while @>>=@ sequences two subcomputations, exiting on the
 -- first exception.
 newtype ExceptT e m a = ExceptT (m (Either e a))
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
+#elif __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
 #endif
 
 instance (Eq e, Eq1 m) => Eq1 (ExceptT e m) where

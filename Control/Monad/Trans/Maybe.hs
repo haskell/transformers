@@ -78,8 +78,10 @@ import GHC.Generics
 -- value, while @>>=@ sequences two subcomputations, exiting if either
 -- computation does.
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
+#elif __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
 #endif
 
 instance (Eq1 m) => Eq1 (MaybeT m) where

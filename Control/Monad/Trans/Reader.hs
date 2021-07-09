@@ -117,8 +117,10 @@ withReader = withReaderT
 -- The 'return' function ignores the environment, while @>>=@ passes
 -- the inherited environment to both subcomputations.
 newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
+#elif __GLASGOW_HASKELL__ >= 702
+    deriving (Generic)
 #endif
 
 -- | Transform the computation inside a @ReaderT@.
