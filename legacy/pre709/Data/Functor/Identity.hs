@@ -61,7 +61,7 @@ import Data.Data
 #endif
 import Data.Ix (Ix(..))
 import Foreign (Storable(..), castPtr)
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -71,7 +71,7 @@ newtype Identity a = Identity { runIdentity :: a }
 #if __GLASGOW_HASKELL__ >= 700
              , Data, Typeable
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
              , Generic
 #endif
 #if __GLASGOW_HASKELL__ >= 706

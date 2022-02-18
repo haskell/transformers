@@ -54,7 +54,7 @@ import Control.Monad
 import qualified Control.Monad.Fail as Fail
 #endif
 import Data.Functor.Identity
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -84,7 +84,7 @@ mapSelect f = mapSelectT (Identity . f . runIdentity)
 -- 'SelectT' is not a functor on the category of monads, and many operations
 -- cannot be lifted through it.
 newtype SelectT r m a = SelectT ((a -> m r) -> m a)
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

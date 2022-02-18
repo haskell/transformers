@@ -67,7 +67,7 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 #if (MIN_VERSION_base(4,2,0)) && !(MIN_VERSION_base(4,8,0))
 import Data.Functor ((<$))
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -119,7 +119,7 @@ withReader = withReaderT
 newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
-#elif __GLASGOW_HASKELL__ >= 702
+#elif __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

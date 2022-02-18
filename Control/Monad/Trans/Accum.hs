@@ -71,7 +71,7 @@ import Control.Monad.Signatures
 #if !MIN_VERSION_base(4,8,0)
 import Data.Monoid
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -134,7 +134,7 @@ mapAccum f = mapAccumT (Identity . f . runIdentity)
 --
 --  * a writer monad transformer with the extra ability to read all previous output.
 newtype AccumT w m a = AccumT (w -> m (a, w))
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

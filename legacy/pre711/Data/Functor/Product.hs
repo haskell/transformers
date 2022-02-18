@@ -50,14 +50,14 @@ import Data.Functor.Contravariant
 #endif
 import Data.Monoid (mappend)
 import Data.Traversable (Traversable(traverse))
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
 -- | Lifted product of functors.
 data Product f g a = Pair (f a) (g a)
 
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 deriving instance Generic (Product f g a)
 
 instance Generic1 (Product f g) where

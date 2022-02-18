@@ -41,7 +41,7 @@ import Data.Foldable (Foldable(foldMap))
 import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(traverse))
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -50,7 +50,7 @@ import GHC.Generics
 data Lift f a = Pure a | Other (f a)
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
-#elif __GLASGOW_HASKELL__ >= 702
+#elif __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

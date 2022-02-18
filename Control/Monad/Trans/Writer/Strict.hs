@@ -77,7 +77,7 @@ import Data.Monoid
 import Data.Traversable (Traversable(traverse))
 #endif
 import Prelude hiding (null, length)
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -125,7 +125,7 @@ mapWriter f = mapWriterT (Identity . f . runIdentity)
 -- The 'return' function produces the output 'mempty', while @>>=@
 -- combines the outputs of the subcomputations using 'mappend'.
 newtype WriterT w m a = WriterT { runWriterT :: m (a, w) }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

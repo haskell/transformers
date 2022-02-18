@@ -80,7 +80,7 @@ import Control.Monad.Fix
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -143,7 +143,7 @@ withRWS = withRWST
 -- collecting an output of type @w@ and updating a state of type @s@
 -- to an inner monad @m@.
 newtype RWST r w s m a = RWST { runRWST :: r -> s -> m (a, s, w) }
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 -- | Evaluate a computation with the given initial state and environment,

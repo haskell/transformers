@@ -31,7 +31,7 @@ import Data.Functor.Classes
 #if MIN_VERSION_base(4,12,0)
 import Data.Functor.Contravariant
 #endif
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -47,7 +47,7 @@ import Data.Traversable (Traversable(traverse, sequenceA))
 newtype Backwards f a = Backwards { forwards :: f a }
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
-#elif __GLASGOW_HASKELL__ >= 702
+#elif __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

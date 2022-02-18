@@ -55,7 +55,7 @@ import Data.Foldable
 import Data.Traversable (Traversable(traverse))
 #endif
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -63,7 +63,7 @@ import GHC.Generics
 newtype IdentityT f a = IdentityT { runIdentityT :: f a }
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
-#elif __GLASGOW_HASKELL__ >= 702
+#elif __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 

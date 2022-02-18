@@ -45,7 +45,7 @@ import Data.Data
 #endif
 import Data.Foldable (Foldable(foldMap))
 import Data.Traversable (Traversable(traverse))
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -56,7 +56,7 @@ infixr 9 `Compose`
 -- but the composition of monads is not always a monad.
 newtype Compose f g a = Compose { getCompose :: f (g a) }
 
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 deriving instance Generic (Compose f g a)
 
 instance Functor f => Generic1 (Compose f g) where

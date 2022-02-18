@@ -44,7 +44,7 @@ import Data.Foldable
 import Data.Traversable (Traversable(traverse))
 #endif
 import Data.Monoid
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 704
 import GHC.Generics
 #endif
 
@@ -53,7 +53,7 @@ import GHC.Generics
 newtype Reverse f a = Reverse { getReverse :: f a }
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)
-#elif __GLASGOW_HASKELL__ >= 702
+#elif __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 
