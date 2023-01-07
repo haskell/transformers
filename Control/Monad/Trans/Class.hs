@@ -108,16 +108,23 @@ specialized lifting combinators, called @lift@/Op/
 
 {- $strict
 
-A monad is said to be /strict/ if its '>>=' operation is strict in its first
-argument.  The base monads 'Maybe', @[]@ and 'IO' are strict:
+A monad is said to be /strict/ if its '>>=' operation (and therefore also
+'>>') is strict in its first argument.  The base monads 'Maybe', @[]@
+and 'IO' are strict:
 
->>> undefined >> return 2 :: Maybe Integer
+>>> undefined >> Just 2
+*** Exception: Prelude.undefined
+>>> undefined >> [2]
+*** Exception: Prelude.undefined
+>>> undefined >> print 2
 *** Exception: Prelude.undefined
 
-However the monad 'Data.Functor.Identity.Identity' is not:
+However the monads 'Data.Functor.Identity.Identity' and @(->) a@ are not:
 
->>> runIdentity (undefined >> return 2)
-2
+>>> undefined >> Identity 2
+Identity 2
+>>> (undefined >> (+1)) 5
+6
 
 In a strict monad you know when each action is executed, but the monad
 is not necessarily strict in the return value, or in other components

@@ -291,6 +291,10 @@ modify f = state $ \ s -> ((), f s)
 -- new state.
 --
 -- * @'modify'' f = 'get' >>= (('$!') 'put' . f)@
+--
+-- Note that this is only strict in the top level of the state.
+-- Lazy components of the state will not be evaluated unless @f@
+-- evaluates them.
 modify' :: (Monad m) => (s -> s) -> StateT s m ()
 modify' f = do
     s <- get
