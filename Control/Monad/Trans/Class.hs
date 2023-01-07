@@ -58,14 +58,17 @@ module Control.Monad.Trans.Class (
 --
 -- * @'lift' (m >>= f) = 'lift' m >>= ('lift' . f)@
 --
--- Since 0.6.0.0 and for GHC 8.8 and later, the requirement that @t m@
+-- Since 0.6.0.0 and for GHC 8.6 and later, the requirement that @t m@
 -- be a 'Monad' is enforced by the implication constraint
 -- @forall m. 'Monad' m => 'Monad' (t m)@ enabled by the
 -- @QuantifiedConstraints@ extension.
-#if __GLASGOW_HASKELL__ >= 808
+#if __GLASGOW_HASKELL__ >= 806
 class (forall m. Monad m => Monad (t m)) => MonadTrans t where
 #else
--- prior to GHC 8.8 (base-4.13), the Monad class included fail
+-- Prior to GHC 8.8 (base-4.13), the Monad class included fail.
+-- GHC 8.6 (base-4.12) has MonadFailDesugaring on by default, so there
+-- is no need for users defining monad transformers to define fail in
+-- the Monad instance of the transformed monad.
 class MonadTrans t where
 #endif
     -- | Lift a computation from the argument monad to the constructed monad.
