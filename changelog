@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.6.0.6 Ross Paterson <R.Paterson@city.ac.uk> Jan 2023
+	* Fix for GHC 8.6
+
 0.6.0.5 Ross Paterson <R.Paterson@city.ac.uk> Jan 2023
 	* Revert to allowing MonadTrans constraint with GHC >= 8.6
 
