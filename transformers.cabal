@@ -37,7 +37,7 @@ extra-doc-files:
     images/bind-WriterT.svg
 extra-source-files:
     changelog
-cabal-version: >= 1.10
+cabal-version: 1.18
 
 source-repository head
   type: darcs
