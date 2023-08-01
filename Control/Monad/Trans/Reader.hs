@@ -75,8 +75,11 @@ import GHC.Generics
 --
 -- Computations are functions of a shared environment.
 --
--- The 'return' function ignores the environment, while @>>=@ passes
--- the inherited environment to both subcomputations.
+-- The 'return' function ignores the environment, while @m '>>=' k@
+-- passes the inherited environment to both subcomputations:
+--
+-- <<images/bind-ReaderT.svg>>
+--
 type Reader r = ReaderT r Identity
 
 -- | Constructor for computations in the reader monad (equivalent to 'asks').
@@ -114,8 +117,11 @@ withReader = withReaderT
 -- | The reader monad transformer,
 -- which adds a read-only environment to the given monad.
 --
--- The 'return' function ignores the environment, while @>>=@ passes
--- the inherited environment to both subcomputations.
+-- The 'return' function ignores the environment, while @m '>>=' k@
+-- passes the inherited environment to both subcomputations:
+--
+-- <<images/bind-ReaderT.svg>>
+--
 newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
 #if __GLASGOW_HASKELL__ >= 710
     deriving (Generic, Generic1)

@@ -81,8 +81,12 @@ import GHC.Generics
 -- ---------------------------------------------------------------------------
 -- | A writer monad parameterized by the type @w@ of output to accumulate.
 --
--- The 'return' function produces the output 'mempty', while @>>=@
--- combines the outputs of the subcomputations using 'mappend'.
+-- The 'return' function produces the output 'mempty', while @m '>>=' k@
+-- combines the outputs of the subcomputations using 'mappend' (also
+-- known as @<>@):
+--
+-- <<images/bind-WriterT.svg>>
+--
 type Writer w = WriterT w Identity
 
 -- | Construct a writer computation from a (result, output) pair.
@@ -119,8 +123,12 @@ mapWriter f = mapWriterT (Identity . f . runIdentity)
 --
 --   * @m@ - The inner monad.
 --
--- The 'return' function produces the output 'mempty', while @>>=@
--- combines the outputs of the subcomputations using 'mappend'.
+-- The 'return' function produces the output 'mempty', while @m '>>=' k@
+-- combines the outputs of the subcomputations using 'mappend' (also
+-- known as @<>@):
+--
+-- <<images/bind-WriterT.svg>>
+--
 newtype WriterT w m a = WriterT { runWriterT :: m (a, w) }
 #if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)

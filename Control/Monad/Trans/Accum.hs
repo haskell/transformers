@@ -18,10 +18,12 @@
 --
 -- The lazy 'AccumT' monad transformer, which adds accumulation
 -- capabilities (such as declarations or document patches) to a given monad.
+-- Each computation has access to the combination of the input environment
+-- and outputs added so far, and returns the outputs added.
 --
--- This monad transformer provides append-only accumulation
--- during the computation. For more general access, use
--- "Control.Monad.Trans.State" instead.
+-- In applications requiring only the ability to accumulate an output and
+-- to inspect the output so far, it would be considerably more efficient
+-- to use "Control.Monad.Trans.State" instead.
 -----------------------------------------------------------------------------
 
 module Control.Monad.Trans.Accum (
@@ -78,8 +80,16 @@ import GHC.Generics
 -- ---------------------------------------------------------------------------
 -- | An accumulation monad parameterized by the type @w@ of output to accumulate.
 --
--- The 'return' function produces the output 'mempty', while @>>=@
--- combines the outputs of the subcomputations using 'mappend'.
+-- This monad is a more complex extension of both the reader and writer
+-- monads.  The 'return' function produces the output 'mempty', while @m
+-- '>>=' k@ uses the output of @m@ both to extend the initial environment
+-- of @k@ and to combine with the output of @k@:
+--
+-- <<images/bind-AccumT.svg>>
+--
+-- In applications requiring only the ability to accumulate an output and
+-- to inspect the output so far, it would be considerably more efficient
+-- to use a state monad.
 type Accum w = AccumT w Identity
 
 -- | Construct an accumulation computation from a (result, output) pair.
@@ -124,21 +134,28 @@ mapAccum f = mapAccumT (Identity . f . runIdentity)
 --
 --   * @m@ - The inner monad.
 --
--- The 'return' function produces the output 'mempty', while @>>=@
--- combines the outputs of the subcomputations using 'mappend'.
+-- This monad transformer is a more complex extension of both the reader
+-- and writer monad transformers.  The 'return' function produces the
+-- output 'mempty', while @m '>>=' k@ uses the output of @m@ both to
+-- extend the initial environment of @k@ and to combine with the output
+-- of @k@:
 --
--- This monad transformer is similar to both state and writer monad transformers.
--- Thus it can be seen as
+-- <<images/bind-AccumT.svg>>
 --
---  * a restricted append-only version of a state monad transformer or
---
---  * a writer monad transformer with the extra ability to read all previous output.
+-- In applications requiring only the ability to accumulate an output and
+-- to inspect the output so far, it would be considerably more efficient
+-- to use a state monad transformer.
 newtype AccumT w m a = AccumT (w -> m (a, w))
 #if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
 #endif
 
--- | Unwrap an accumulation computation.
+-- | Unwrap an accumulation computation.  For example, in the call
+--
+-- @    (value, locals) <- runAccumT action globals@
+--
+-- the action is fed an initial environment @globals@, and @locals@ is
+-- the sum of all arguments to calls of 'add' executed by the action.
 runAccumT :: AccumT w m a -> w -> m (a, w)
 runAccumT (AccumT f) = f
 {-# INLINE runAccumT #-}
@@ -152,8 +169,8 @@ execAccumT m w = do
     return w'
 {-# INLINE execAccumT #-}
 
--- | Evaluate an accumulation computation with the given initial output history
--- and return the final value, discarding the final output.
+-- | Evaluate an accumulation computation with the given initial output
+-- history and return the final value, discarding the final output.
 --
 -- * @'evalAccumT' m w = 'liftM' 'fst' ('runAccumT' m w)@
 evalAccumT :: (Monad m, Monoid w) => AccumT w m a -> w -> m a
@@ -162,8 +179,8 @@ evalAccumT m w = do
     return a
 {-# INLINE evalAccumT #-}
 
--- | Map both the return value and output of a computation using
--- the given function.
+-- | Map both the return value and output of a computation using the
+-- given function.
 --
 -- * @'runAccumT' ('mapAccumT' f m) = f . 'runAccumT' m@
 mapAccumT :: (m (a, w) -> n (b, w)) -> AccumT w m a -> AccumT w n b
