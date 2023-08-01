@@ -87,15 +87,18 @@ class MonadTrans t where
     lift :: (Monad m) => m a -> t m a
 
 {- $conventions
-Most monad transformer modules include the special case of applying
-the transformer to 'Data.Functor.Identity.Identity'.  For example,
+All monad transformer modules except 'Control.Monad.Trans.Maybe'
+include the special case of applying the transformer
+to 'Data.Functor.Identity.Identity'.  For example,
 @'Control.Monad.Trans.State.Lazy.State' s@ is an abbreviation for
 @'Control.Monad.Trans.State.Lazy.StateT' s 'Data.Functor.Identity.Identity'@.
+As a consequence, operations defined on the monad transformer can also
+be used on this special case.
 
 Each monad transformer also comes with an operation @run@/XXX/@T@ to
 unwrap the transformer, exposing a computation of the inner monad.
-(Currently these functions are defined as field labels, but in the next
-major release they will be separate functions.)
+(Currently these functions are defined as field labels, but in a future
+major release they may be separate functions.)
 
 All of the monad transformers except 'Control.Monad.Trans.Cont.ContT'
 and 'Control.Monad.Trans.Cont.SelectT' are functors on the category
@@ -134,7 +137,7 @@ and 'IO' are strict:
 >>> undefined >> print 2
 *** Exception: Prelude.undefined
 
-However the monads 'Data.Functor.Identity.Identity' and @(->) a@ are not:
+However, the monads 'Data.Functor.Identity.Identity' and @(->) a@ are not:
 
 >>> undefined >> Identity 2
 Identity 2
@@ -143,7 +146,7 @@ Identity 2
 
 In a strict monad you know when each action is executed, but the monad
 is not necessarily strict in the return value, or in other components
-of the monad, such as a state.  However you can use 'seq' to create
+of the monad, such as a state.  However, you can use 'seq' to create
 an action that is strict in the component you want evaluated.
 -}
 
