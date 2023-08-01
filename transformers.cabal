@@ -1,5 +1,5 @@
 name:         transformers
-version:      0.6.1.0
+version:      0.6.1.1
 license:      BSD3
 license-file: LICENSE
 author:       Andy Gill, Ross Paterson
@@ -31,6 +31,10 @@ description:
     the @mtl@ or @monads-tf@ packages, which automatically lift operations
     introduced by monad transformers through other transformers.
 build-type: Simple
+extra-doc-files:
+    images/bind-AccumT.svg
+    images/bind-ReaderT.svg
+    images/bind-WriterT.svg
 extra-source-files:
     changelog
 cabal-version: >= 1.10

@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.6.1.1 Ross Paterson <R.Paterson@city.ac.uk> Aug 2023
+	* Additions to documentation, especially of AccumT.
+
 0.6.1.0 Ross Paterson <R.Paterson@city.ac.uk> Feb 2023
 	* Add instances of Foldable1 (class added to base-4.18)
 	* Add modifyM to StateT transformers
