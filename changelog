@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.6.2.0 William Rusnack <williamrusnack@gmail.com> Mar 2024
+	* Add bidirectional pattern RWST to Control.Monad.Trans.RWST.CPS
+
 0.6.1.1 Ross Paterson <R.Paterson@city.ac.uk> Aug 2023
 	* Additions to documentation, especially of AccumT.
 

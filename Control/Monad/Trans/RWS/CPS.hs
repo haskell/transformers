@@ -6,6 +6,10 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 781
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.RWS.CPS
@@ -38,6 +42,9 @@ module Control.Monad.Trans.RWS.CPS (
     withRWS,
     -- * The RWST monad transformer
     RWST,
+#if __GLASGOW_HASKELL__ >= 781
+    pattern RWST,
+#endif
     rwsT,
     runRWST,
     evalRWST,
@@ -94,7 +101,7 @@ type RWS r w s = RWST r w s Identity
 -- | Construct an RWS computation from a function.
 -- (The inverse of 'runRWS'.)
 rws :: (Monoid w) => (r -> s -> (a, s, w)) -> RWS r w s a
-rws f = RWST $ \ r s w ->
+rws f = RWST' $ \ r s w ->
     let (a, s', w') = f r s; wt = w `mappend` w' in wt `seq` return (a, s', wt)
 {-# INLINE rws #-}
 
@@ -148,15 +155,22 @@ withRWS = withRWST
 -- | A monad transformer adding reading an environment of type @r@,
 -- collecting an output of type @w@ and updating a state of type @s@
 -- to an inner monad @m@.
-newtype RWST r w s m a = RWST { unRWST :: r -> s -> w -> m (a, s, w) }
+newtype RWST r w s m a = RWST' { unRWST :: r -> s -> w -> m (a, s, w) }
 #if __GLASGOW_HASKELL__ >= 704
     deriving (Generic)
+#endif
+
+#if __GLASGOW_HASKELL__ >= 781
+pattern RWST :: (Functor m, Monoid w) => (r -> s -> m (a, s, w)) -> RWST r w s m a
+pattern RWST x <- (runRWST -> x) where
+  RWST x = rwsT x
+{-# COMPLETE RWST #-}
 #endif
 
 -- | Construct an RWST computation from a function.
 -- (The inverse of 'runRWST'.)
 rwsT :: (Functor m, Monoid w) => (r -> s -> m (a, s, w)) -> RWST r w s m a
-rwsT f = RWST $ \ r s w ->
+rwsT f = RWST' $ \ r s w ->
      (\ (a, s', w') -> let wt = w `mappend` w' in wt `seq` (a, s', wt)) <$> f r s
 {-# INLINE rwsT #-}
 
@@ -196,7 +210,7 @@ execRWST m r s = do
 --mapRWST :: (m (a, s, w) -> n (b, s, w')) -> RWST r w s m a -> RWST r w' s n b
 mapRWST :: (Monad n, Monoid w, Monoid w') =>
     (m (a, s, w) -> n (b, s, w')) -> RWST r w s m a -> RWST r w' s n b
-mapRWST f m = RWST $ \ r s w -> do
+mapRWST f m = RWST' $ \ r s w -> do
     (a, s', w') <- f (runRWST m r s)
     let wt = w `mappend` w'
     wt `seq` return (a, s', wt)
@@ -207,49 +221,49 @@ mapRWST f m = RWST $ \ r s w -> do
 --
 -- * @'runRWST' ('withRWST' f m) r s = 'uncurry' ('runRWST' m) (f r s)@
 withRWST :: (r' -> s -> (r, s)) -> RWST r w s m a -> RWST r' w s m a
-withRWST f m = RWST $ \ r s -> uncurry (unRWST m) (f r s)
+withRWST f m = RWST' $ \ r s -> uncurry (unRWST m) (f r s)
 {-# INLINE withRWST #-}
 
 instance (Functor m) => Functor (RWST r w s m) where
-    fmap f m = RWST $ \ r s w -> (\ (a, s', w') -> (f a, s', w')) <$> unRWST m r s w
+    fmap f m = RWST' $ \ r s w -> (\ (a, s', w') -> (f a, s', w')) <$> unRWST m r s w
     {-# INLINE fmap #-}
 
 instance (Functor m, Monad m) => Applicative (RWST r w s m) where
-    pure a = RWST $ \ _ s w -> return (a, s, w)
+    pure a = RWST' $ \ _ s w -> return (a, s, w)
     {-# INLINE pure #-}
 
-    RWST mf <*> RWST mx = RWST $ \ r s w -> do
+    RWST' mf <*> RWST' mx = RWST' $ \ r s w -> do
         (f, s', w')    <- mf r s w
         (x, s'', w'') <- mx r s' w'
         return (f x, s'', w'')
     {-# INLINE (<*>) #-}
 
 instance (Functor m, MonadPlus m) => Alternative (RWST r w s m) where
-    empty = RWST $ \ _ _ _ -> mzero
+    empty = RWST' $ \ _ _ _ -> mzero
     {-# INLINE empty #-}
 
-    RWST m <|> RWST n = RWST $ \ r s w -> m r s w `mplus` n r s w
+    RWST' m <|> RWST' n = RWST' $ \ r s w -> m r s w `mplus` n r s w
     {-# INLINE (<|>) #-}
 
 instance (Monad m) => Monad (RWST r w s m) where
 #if !(MIN_VERSION_base(4,8,0))
-    return a = RWST $ \ _ s w -> return (a, s, w)
+    return a = RWST' $ \ _ s w -> return (a, s, w)
     {-# INLINE return #-}
 #endif
 
-    m >>= k = RWST $ \ r s w -> do
+    m >>= k = RWST' $ \ r s w -> do
         (a, s', w')    <- unRWST m r s w
         unRWST (k a) r s' w'
     {-# INLINE (>>=) #-}
 
 #if !(MIN_VERSION_base(4,13,0))
-    fail msg = RWST $ \ _ _ _ -> fail msg
+    fail msg = RWST' $ \ _ _ _ -> fail msg
     {-# INLINE fail #-}
 #endif
 
 #if MIN_VERSION_base(4,9,0)
 instance (Fail.MonadFail m) => Fail.MonadFail (RWST r w s m) where
-    fail msg = RWST $ \ _ _ _ -> Fail.fail msg
+    fail msg = RWST' $ \ _ _ _ -> Fail.fail msg
     {-# INLINE fail #-}
 #endif
 
@@ -260,11 +274,11 @@ instance (Functor m, MonadPlus m) => MonadPlus (RWST r w s m) where
     {-# INLINE mplus #-}
 
 instance (MonadFix m) => MonadFix (RWST r w s m) where
-    mfix f = RWST $ \ r s w -> mfix $ \ ~(a, _, _) -> unRWST (f a) r s w
+    mfix f = RWST' $ \ r s w -> mfix $ \ ~(a, _, _) -> unRWST (f a) r s w
     {-# INLINE mfix #-}
 
 instance MonadTrans (RWST r w s) where
-    lift m = RWST $ \ _ s w -> do
+    lift m = RWST' $ \ _ s w -> do
         a <- m
         return (a, s, w)
     {-# INLINE lift #-}
@@ -289,14 +303,14 @@ ask = asks id
 --
 -- * @'runRWST' ('local' f m) r s = 'runRWST' m (f r) s@
 local :: (r -> r) -> RWST r w s m a -> RWST r w s m a
-local f m = RWST $ \ r s w -> unRWST m (f r) s w
+local f m = RWST' $ \ r s w -> unRWST m (f r) s w
 {-# INLINE local #-}
 
 -- | Retrieve a function of the current environment.
 --
 -- * @'asks' f = 'liftM' f 'ask'@
 asks :: (Monad m) => (r -> a) -> RWST r w s m a
-asks f = RWST $ \ r s w -> return (f r, s, w)
+asks f = RWST' $ \ r s w -> return (f r, s, w)
 {-# INLINE asks #-}
 
 -- ---------------------------------------------------------------------------
@@ -304,7 +318,7 @@ asks f = RWST $ \ r s w -> return (f r, s, w)
 
 -- | Construct a writer computation from a (result, output) pair.
 writer :: (Monoid w, Monad m) => (a, w) -> RWST r w s m a
-writer (a, w') = RWST $ \ _ s w -> let wt = w `mappend` w' in wt `seq` return (a, s, wt)
+writer (a, w') = RWST' $ \ _ s w -> let wt = w `mappend` w' in wt `seq` return (a, s, wt)
 {-# INLINE writer #-}
 
 -- | @'tell' w@ is an action that produces the output @w@.
@@ -327,7 +341,7 @@ listen = listens id
 --
 -- * @'runRWST' ('listens' f m) r s = 'liftM' (\\ (a, w) -> ((a, f w), w)) ('runRWST' m r s)@
 listens :: (Monoid w, Monad m) => (w -> b) -> RWST r w s m a -> RWST r w s m (a, b)
-listens f m = RWST $ \ r s w -> do
+listens f m = RWST' $ \ r s w -> do
     (a, s', w') <- runRWST m r s
     let wt = w `mappend` w'
     wt `seq` return ((a, f w'), s', wt)
@@ -339,7 +353,7 @@ listens f m = RWST $ \ r s w -> do
 --
 -- * @'runRWST' ('pass' m) r s = 'liftM' (\\ ((a, f), w) -> (a, f w)) ('runRWST' m r s)@
 pass :: (Monoid w, Monoid w', Monad m) => RWST r w s m (a, w -> w') -> RWST r w' s m a
-pass m = RWST $ \ r s w -> do
+pass m = RWST' $ \ r s w -> do
     ((a, f), s', w') <- runRWST m r s
     let wt = w `mappend` f w'
     wt `seq` return (a, s', wt)
@@ -353,7 +367,7 @@ pass m = RWST $ \ r s w -> do
 --
 -- * @'runRWST' ('censor' f m) r s = 'liftM' (\\ (a, w) -> (a, f w)) ('runRWST' m r s)@
 censor :: (Monoid w, Monad m) => (w -> w) -> RWST r w s m a -> RWST r w s m a
-censor f m = RWST $ \ r s w -> do
+censor f m = RWST' $ \ r s w -> do
     (a, s', w') <- runRWST m r s
     let wt = w `mappend` f w'
     wt `seq` return (a, s', wt)
@@ -364,7 +378,7 @@ censor f m = RWST $ \ r s w -> do
 
 -- | Construct a state monad computation from a state transformer function.
 state :: (Monad m) => (s -> (a, s)) -> RWST r w s m a
-state f = RWST $ \ _ s w -> let (a, s') = f s in return (a, s', w)
+state f = RWST' $ \ _ s w -> let (a, s') = f s in return (a, s', w)
 {-# INLINE state #-}
 
 -- | Fetch the current value of the state within the monad.
@@ -374,7 +388,7 @@ get = gets id
 
 -- | @'put' s@ sets the state within the monad to @s@.
 put :: (Monad m) =>s -> RWST r w s m ()
-put s = RWST $ \ _ _ w -> return ((), s, w)
+put s = RWST' $ \ _ _ w -> return ((), s, w)
 {-# INLINE put #-}
 
 -- | @'modify' f@ is an action that updates the state to the result of
@@ -382,7 +396,7 @@ put s = RWST $ \ _ _ w -> return ((), s, w)
 --
 -- * @'modify' f = 'get' >>= ('put' . f)@
 modify :: (Monad m) =>(s -> s) -> RWST r w s m ()
-modify f = RWST $ \ _ s w -> return ((), f s, w)
+modify f = RWST' $ \ _ s w -> return ((), f s, w)
 {-# INLINE modify #-}
 
 -- | Get a specific component of the state, using a projection function
@@ -390,26 +404,26 @@ modify f = RWST $ \ _ s w -> return ((), f s, w)
 --
 -- * @'gets' f = 'liftM' f 'get'@
 gets :: (Monad m) =>(s -> a) -> RWST r w s m a
-gets f = RWST $ \ _ s w -> return (f s, s, w)
+gets f = RWST' $ \ _ s w -> return (f s, s, w)
 {-# INLINE gets #-}
 
 -- | Uniform lifting of a @callCC@ operation to the new monad.
 -- This version rolls back to the original state on entering the
 -- continuation.
 liftCallCC :: CallCC m (a,s,w) (b,s,w) -> CallCC (RWST r w s m) a b
-liftCallCC callCC f = RWST $ \ r s w ->
-    callCC $ \ c -> unRWST (f (\ a -> RWST $ \ _ _ _ -> c (a, s, w))) r s w
+liftCallCC callCC f = RWST' $ \ r s w ->
+    callCC $ \ c -> unRWST (f (\ a -> RWST' $ \ _ _ _ -> c (a, s, w))) r s w
 {-# INLINE liftCallCC #-}
 
 -- | In-situ lifting of a @callCC@ operation to the new monad.
 -- This version uses the current state on entering the continuation.
 liftCallCC' :: CallCC m (a,s,w) (b,s,w) -> CallCC (RWST r w s m) a b
-liftCallCC' callCC f = RWST $ \ r s w ->
-    callCC $ \ c -> unRWST (f (\ a -> RWST $ \ _ s' _ -> c (a, s', w))) r s w
+liftCallCC' callCC f = RWST' $ \ r s w ->
+    callCC $ \ c -> unRWST (f (\ a -> RWST' $ \ _ s' _ -> c (a, s', w))) r s w
 {-# INLINE liftCallCC' #-}
 
 -- | Lift a @catchE@ operation to the new monad.
 liftCatch :: Catch e m (a,s,w) -> Catch e (RWST r w s m) a
 liftCatch catchE m h =
-    RWST $ \ r s w -> unRWST m r s w `catchE` \ e -> unRWST (h e) r s w
+    RWST' $ \ r s w -> unRWST m r s w `catchE` \ e -> unRWST (h e) r s w
 {-# INLINE liftCatch #-}
