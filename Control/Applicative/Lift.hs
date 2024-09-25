@@ -39,7 +39,7 @@ import Data.Functor.Classes
 
 import Control.Applicative
 import Data.Functor.Constant
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Foldable (Foldable(foldMap))
 import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(traverse))

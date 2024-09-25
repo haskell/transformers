@@ -70,7 +70,7 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 #endif
 import Data.Foldable
 import Data.Monoid
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Traversable (Traversable(traverse))
 #endif
 import Prelude hiding (null, length)

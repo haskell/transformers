@@ -1,5 +1,5 @@
 name:         transformers
-version:      0.6.1.1
+version:      0.6.1.2
 license:      BSD3
 license-file: LICENSE
 author:       Andy Gill, Ross Paterson
@@ -47,13 +47,13 @@ library
   default-language: Haskell2010
   build-depends: base >= 2 && < 6
   hs-source-dirs: .
-  if !impl(ghc>=7.9)
+  if impl(ghc<7.9)
     -- Data.Functor.Identity was moved into base-4.8.0.0 (GHC 7.10)
     -- see also https://ghc.haskell.org/trac/ghc/ticket/9664
     -- NB: using impl(ghc>=7.9) instead of fragile Cabal flags
     hs-source-dirs: legacy/pre709
     exposed-modules: Data.Functor.Identity
-  if !impl(ghc>=7.11)
+  if impl(ghc<7.11)
     -- modules moved into base-4.9.0 (GHC 8.0)
     -- see https://ghc.haskell.org/trac/ghc/ticket/10773
     -- see https://ghc.haskell.org/trac/ghc/ticket/11135

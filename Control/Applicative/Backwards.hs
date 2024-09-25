@@ -41,7 +41,7 @@ import GHC.Generics
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
 import Control.Applicative
 import Data.Foldable
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Traversable (Traversable(traverse, sequenceA))
 #endif
 

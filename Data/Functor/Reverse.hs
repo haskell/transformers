@@ -43,7 +43,7 @@ import Control.Monad
 import qualified Control.Monad.Fail as Fail
 #endif
 import Data.Foldable
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Traversable (Traversable(traverse))
 #endif
 import Data.Monoid

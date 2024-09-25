@@ -70,7 +70,7 @@ import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip (MonadZip(mzipWith))
 #endif
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Foldable (Foldable(foldMap))
 import Data.Monoid (Monoid(mempty, mappend))
 import Data.Traversable (Traversable(traverse))

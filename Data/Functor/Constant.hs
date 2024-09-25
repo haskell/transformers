@@ -36,7 +36,7 @@ import Data.Functor.Contravariant
 
 import Control.Applicative
 import Data.Foldable
-#if !(MIN_VERSION_base(4,8,0))
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Monoid (Monoid(..))
 import Data.Traversable (Traversable(traverse))
 #endif
