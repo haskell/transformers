@@ -32,11 +32,10 @@ description:
     introduced by monad transformers through other transformers.
 build-type: Simple
 extra-doc-files:
+    changelog
     images/bind-AccumT.svg
     images/bind-ReaderT.svg
     images/bind-WriterT.svg
-extra-source-files:
-    changelog
 cabal-version: 1.18
 
 source-repository head
@@ -66,7 +65,7 @@ library
       Data.Functor.Sum
   if impl(ghc>=7.2 && <7.5)
     -- Prior to GHC 7.5, GHC.Generics lived in ghc-prim
-    build-depends: ghc-prim
+    build-depends: ghc-prim < 0.3
   exposed-modules:
     Control.Applicative.Backwards
     Control.Applicative.Lift
