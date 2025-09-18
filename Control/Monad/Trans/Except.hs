@@ -45,6 +45,7 @@ module Control.Monad.Trans.Except (
     handleE,
     tryE,
     finallyE,
+    onE,
     -- * Lifting other operations
     liftCallCC,
     liftListen,
@@ -328,6 +329,14 @@ finallyE m closer = do
     closer
     either throwE return res
 {-# INLINE finallyE #-}
+
+-- | If the first action succeeds, return its value, ignoring the
+-- second action.  If the first action throws an exception, run the
+-- second action and then throw an exception, either the one thrown by
+-- the second action, if any, or the one thrown by the first action.
+onE :: (Monad m) => ExceptT e m a -> ExceptT e m b -> ExceptT e m a
+onE action1 action2 = action1 `catchE` \ e -> action2 >> throwE e
+{-# INLINE onE #-}
 
 -- | Lift a @callCC@ operation to the new monad.
 liftCallCC :: CallCC m (Either e a) (Either e b) -> CallCC (ExceptT e m) a b
