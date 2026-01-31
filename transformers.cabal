@@ -3,8 +3,8 @@ version:      0.6.3.0
 license:      BSD3
 license-file: LICENSE
 author:       Andy Gill, Ross Paterson
-maintainer:   Ross Paterson <R.Paterson@city.ac.uk>
-bug-reports:  http://hub.darcs.net/ross/transformers/issues
+maintainer:   Ross Paterson <R.Paterson@city.ac.uk>, Steven Shuck <stevenjshuck@gmail.com>
+bug-reports:  https://github.com/haskell/transformers/issues
 category:     Control
 synopsis:     Concrete functor and monad transformers
 description:
@@ -32,15 +32,15 @@ description:
     introduced by monad transformers through other transformers.
 build-type: Simple
 extra-doc-files:
-    changelog
+    changelog.md
     images/bind-AccumT.svg
     images/bind-ReaderT.svg
     images/bind-WriterT.svg
 cabal-version: 1.18
 
 source-repository head
-  type: darcs
-  location: http://hub.darcs.net/ross/transformers
+  type: git
+  location: https://github.com/haskell/transformers.git
 
 library
   default-language: Haskell2010
