@@ -25,7 +25,7 @@
 -- The constant functor.
 -----------------------------------------------------------------------------
 
-module Data.Functor.Constant (
+module Data.Functor.Constant {-# DEPRECATED "Use Data.Functor.Const" #-} (
     Constant(..),
   ) where
 

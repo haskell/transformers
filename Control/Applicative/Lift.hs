@@ -6,6 +6,9 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if defined(__GLASGOW_HASKELL__)
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Applicative.Lift
@@ -153,6 +156,12 @@ elimLift _ g (Other e) = g e
 -- unlike monads made with 'Control.Monad.Trans.Except.ExceptT' from
 -- "Control.Monad.Trans.Except", these computations continue after an
 -- error, collecting all the errors.
+--
+-- __The use of `Constant` will be replaced by @Data.Functor.Const.Const@ in a__
+-- __future version.__ It is recommended to convert to and from the @Either@
+-- values using functions in this module, rather than manipulating the
+-- underlying @Lift@ed @Constant@ values directly.
+--
 --
 -- * @'pure' f '<*>' 'pure' x = 'pure' (f x)@
 --
