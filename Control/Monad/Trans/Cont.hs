@@ -150,8 +150,8 @@ newtype ContT r m a = ContT { runContT :: (a -> m r) -> m r }
 -- final continuation.
 --
 -- * @'evalContT' ('lift' m) = m@
-evalContT :: (Monad m) => ContT r m r -> m r
-evalContT m = runContT m return
+evalContT :: Applicative m => ContT r m r -> m r
+evalContT m = runContT m pure
 {-# INLINE evalContT #-}
 
 -- | Apply a function to transform the result of a continuation-passing
