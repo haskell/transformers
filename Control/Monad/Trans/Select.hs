@@ -108,10 +108,10 @@ instance (Monad m) => Applicative (SelectT r m) where
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 
-instance (MonadPlus m) => Alternative (SelectT r m) where
-    empty = mzero
+instance (Functor m, Alternative m, Monad m) => Alternative (SelectT r m) where
+    empty = empty
     {-# INLINE empty #-}
-    (<|>) = mplus
+    (<|>) = (<|>)
     {-# INLINE (<|>) #-}
 
 instance (Monad m) => Monad (SelectT r m) where
