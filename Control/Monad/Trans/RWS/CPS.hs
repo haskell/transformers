@@ -213,7 +213,7 @@ instance (Monad m) => Applicative (RWST r w s m) where
         return (f x, s'', w'')
     {-# INLINE (<*>) #-}
 
-instance (Functor m, Alternative m, Monad m) => Alternative (RWST r w s m) where
+instance (Alternative m, Monad m) => Alternative (RWST r w s m) where
     empty = RWST $ \ _ _ _ -> empty
     {-# INLINE empty #-}
 
