@@ -21,9 +21,7 @@ type ComposeT :: (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
 newtype ComposeT trans1 trans2 m a = ComposeT (trans1 (trans2 m) a)
 #if __GLASGOW_HASKELL__ >= 806
     deriving newtype (Functor, Applicative, Monad)
-#endif
-
-#if __GLASGOW_HASKELL__ < 806
+#else
 instance (Functor (trans1 (trans2 m))) => Functor (ComposeT trans1 trans2 m) where
     fmap f (ComposeT x) = ComposeT (fmap f x)
 
