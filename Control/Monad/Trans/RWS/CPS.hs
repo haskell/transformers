@@ -224,11 +224,11 @@ instance (Functor m, Monad m) => Applicative (RWST r w s m) where
         return (f x, s'', w'')
     {-# INLINE (<*>) #-}
 
-instance (Functor m, MonadPlus m) => Alternative (RWST r w s m) where
-    empty = RWST $ \ _ _ _ -> mzero
+instance (Functor m, Alternative m, Monad m) => Alternative (RWST r w s m) where
+    empty = RWST $ \ _ _ _ -> empty
     {-# INLINE empty #-}
 
-    RWST m <|> RWST n = RWST $ \ r s w -> m r s w `mplus` n r s w
+    RWST m <|> RWST n = RWST $ \ r s w -> m r s w <|> n r s w
     {-# INLINE (<|>) #-}
 
 instance (Monad m) => Monad (RWST r w s m) where
