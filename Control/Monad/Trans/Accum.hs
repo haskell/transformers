@@ -190,10 +190,10 @@ instance (Monoid w, Monad m) => Applicative (AccumT w m) where
       return (f v, w' `mappend` w'')
     {-# INLINE (<*>) #-}
 
-instance (Monoid w, MonadPlus m) => Alternative (AccumT w m) where
-    empty   = AccumT $ const mzero
+instance (Monoid w, Alternative m, Monad m) => Alternative (AccumT w m) where
+    empty   = AccumT $ const empty
     {-# INLINE empty #-}
-    m <|> n = AccumT $ \ w -> runAccumT m w `mplus` runAccumT n w
+    m <|> n = AccumT $ \ w -> runAccumT m w <|> runAccumT n w
     {-# INLINE (<|>) #-}
 
 instance (Monoid w, Monad m) => Monad (AccumT w m) where
