@@ -203,10 +203,10 @@ instance (Monoid w, Functor m, Monad m) => Applicative (RWST r w s m) where
         return (f x, s'', w `mappend` w')
     {-# INLINE (<*>) #-}
 
-instance (Monoid w, Functor m, MonadPlus m) => Alternative (RWST r w s m) where
-    empty = RWST $ \ _ _ -> mzero
+instance (Monoid w, Alternative m, Monad m) => Alternative (RWST r w s m) where
+    empty = RWST $ \ _ _ -> empty
     {-# INLINE empty #-}
-    RWST m <|> RWST n = RWST $ \ r s -> m r s `mplus` n r s
+    RWST m <|> RWST n = RWST $ \ r s -> m r s <|> n r s
     {-# INLINE (<|>) #-}
 
 instance (Monoid w, Monad m) => Monad (RWST r w s m) where

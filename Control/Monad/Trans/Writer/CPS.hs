@@ -179,11 +179,11 @@ instance (Functor m, Monad m) => Applicative (WriterT w m) where
         return (f x, w'')
     {-# INLINE (<*>) #-}
 
-instance (Functor m, MonadPlus m) => Alternative (WriterT w m) where
-    empty = WriterT $ const mzero
+instance (Functor m, Alternative m, Monad m) => Alternative (WriterT w m) where
+    empty = WriterT $ const empty
     {-# INLINE empty #-}
 
-    WriterT m <|> WriterT n = WriterT $ \ w -> m w `mplus` n w
+    WriterT m <|> WriterT n = WriterT $ \ w -> m w <|> n w
     {-# INLINE (<|>) #-}
 
 instance (Monad m) => Monad (WriterT w m) where
