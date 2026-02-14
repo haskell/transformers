@@ -72,6 +72,7 @@ library
     Control.Monad.Signatures
     Control.Monad.Trans.Accum
     Control.Monad.Trans.Class
+    Control.Monad.Trans.Compose
     Control.Monad.Trans.Cont
     Control.Monad.Trans.Except
     Control.Monad.Trans.Identity
