@@ -229,6 +229,20 @@ instance Contravariant m => Contravariant (MaybeT m) where
     {-# INLINE contramap #-}
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (MaybeT m a) where
+  ma <> mb = (<>) <$> ma <*> mb
+  {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (MaybeT m a) where
+  mempty = pure mempty
+  {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | Lift a @callCC@ operation to the new monad.
 liftCallCC :: CallCC m (Maybe a) (Maybe b) -> CallCC (MaybeT m) a b
 liftCallCC callCC f =

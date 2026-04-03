@@ -185,6 +185,20 @@ instance (Contravariant f) => Contravariant (IdentityT f) where
     {-# INLINE contramap #-}
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Applicative m) => Semigroup (IdentityT m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Applicative m) => Monoid (IdentityT m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | Lift a unary operation to the new monad.
 mapIdentityT :: (m a -> n b) -> IdentityT m a -> IdentityT n b
 mapIdentityT f = IdentityT . f . runIdentityT

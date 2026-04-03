@@ -206,6 +206,20 @@ instance (MonadIO m) => MonadIO (ContT r m) where
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
 
+#if MIN_VERSION_base(4,9,0)
+instance Semigroup a => Semigroup (ContT r m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance Monoid a => Monoid (ContT r m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | @callCC@ (call-with-current-continuation) calls its argument
 -- function, passing it the current continuation.  It provides
 -- an escape continuation mechanism for use with continuation

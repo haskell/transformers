@@ -143,3 +143,17 @@ instance (Contravariant f) => Contravariant (Backwards f) where
     contramap f = Backwards . contramap f . forwards
     {-# INLINE contramap #-}
 #endif
+
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Applicative f) => Semigroup (Backwards f a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Applicative f) => Monoid (Backwards f a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif

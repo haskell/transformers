@@ -154,6 +154,20 @@ instance (MonadIO m) => MonadIO (SelectT r m) where
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (SelectT r m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (SelectT r m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | Convert a selection computation to a continuation-passing computation.
 selectToContT :: (Monad m) => SelectT r m a -> ContT r m a
 selectToContT (SelectT g) = ContT $ \ k -> g k >>= k

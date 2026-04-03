@@ -247,6 +247,20 @@ instance (Monoid w, Functor m, MonadIO m) => MonadIO (AccumT w m) where
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monoid w, Monad m) => Semigroup (AccumT w m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monoid w, Monad m) => Monoid (AccumT w m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | @'look'@ is an action that fetches all the previously accumulated output.
 look :: (Monoid w, Monad m) => AccumT w m w
 look = AccumT $ \ w -> return (w, mempty)

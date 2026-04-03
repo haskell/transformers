@@ -228,6 +228,20 @@ instance (MonadIO m) => MonadIO (WriterT w m) where
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (WriterT w m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (WriterT w m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | @'tell' w@ is an action that produces the output @w@.
 tell :: (Monoid w, Monad m) => w -> WriterT w m ()
 tell w = writer ((), w)

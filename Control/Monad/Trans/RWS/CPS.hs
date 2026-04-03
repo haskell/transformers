@@ -272,6 +272,21 @@ instance MonadTrans (RWST r w s) where
 instance (MonadIO m) => MonadIO (RWST r w s m) where
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
+
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (RWST r w s m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (RWST r w s m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- ---------------------------------------------------------------------------
 -- Reader operations
 

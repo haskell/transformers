@@ -281,6 +281,20 @@ instance Contravariant m => Contravariant (ExceptT e m) where
     {-# INLINE contramap #-}
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (ExceptT e m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (ExceptT e m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | Signal an exception value @e@.
 --
 -- * @'runExceptT' ('throwE' e) = 'return' ('Left' e)@

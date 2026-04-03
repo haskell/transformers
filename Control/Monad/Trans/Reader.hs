@@ -236,6 +236,20 @@ instance Contravariant m => Contravariant (ReaderT r m) where
     {-# INLINE contramap #-}
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Applicative m) => Semigroup (ReaderT r m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Applicative m) => Monoid (ReaderT r m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 liftReaderT :: m a -> ReaderT r m a
 liftReaderT m = ReaderT (const m)
 {-# INLINE liftReaderT #-}

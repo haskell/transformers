@@ -277,6 +277,20 @@ instance Contravariant m => Contravariant (StateT s m) where
     {-# INLINE contramap #-}
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+instance (Semigroup a, Monad m) => Semigroup (StateT s m a) where
+    ma <> mb = (<>) <$> ma <*> mb
+    {-# INLINE (<>) #-}
+#endif
+
+instance (Monoid a, Monad m) => Monoid (StateT s m a) where
+    mempty = pure mempty
+    {-# INLINE mempty #-}
+#if !MIN_VERSION_base(4,11,0)
+    ma `mappend` mb = (<>) <$> ma <*> mb
+    {-# INLINE mappend #-}
+#endif
+
 -- | Fetch the current value of the state within the monad.
 get :: (Monad m) => StateT s m s
 get = state $ \ s -> (s, s)
