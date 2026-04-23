@@ -32,6 +32,9 @@ import GHC.Generics
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
 import Control.Applicative
 import Data.Foldable
+#ifndef __GLASGOW_HASKELL__
+import Data.Traversable (Traversable(traverse, sequenceA))
+#endif
 
 -- | The same functor, but with an 'Applicative' instance that performs
 -- actions in the reverse order.
