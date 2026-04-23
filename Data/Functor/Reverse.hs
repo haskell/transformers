@@ -32,7 +32,6 @@ import Control.Applicative
 import Control.Monad
 import qualified Control.Monad.Fail as Fail
 import Data.Foldable
-import Data.Traversable (Traversable(traverse))
 import Data.Monoid (Dual (..))
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics

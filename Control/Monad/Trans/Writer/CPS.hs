@@ -168,7 +168,7 @@ instance (Monad m) => Applicative (WriterT w m) where
         return (f x, w'')
     {-# INLINE (<*>) #-}
 
-instance (Functor m, Alternative m, Monad m) => Alternative (WriterT w m) where
+instance (Alternative m, Monad m) => Alternative (WriterT w m) where
     empty = WriterT $ const empty
     {-# INLINE empty #-}
 

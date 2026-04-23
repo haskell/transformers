@@ -61,7 +61,6 @@ import Control.Monad.Fix
 import Control.Monad.Signatures
 import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Foldable
-import Data.Traversable (Traversable(traverse))
 import Prelude hiding (null, length)
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics

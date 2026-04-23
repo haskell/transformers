@@ -35,8 +35,6 @@ import Data.Functor.Classes
 
 import Control.Applicative
 import Data.Functor.Constant
-import Data.Foldable (Foldable(foldMap))
-import Data.Traversable (Traversable(traverse))
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics
 #endif

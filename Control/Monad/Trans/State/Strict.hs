@@ -208,7 +208,7 @@ instance (Monad m) => Applicative (StateT s m) where
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 
-instance (Functor m, Alternative m, Monad m) => Alternative (StateT s m) where
+instance (Alternative m, Monad m) => Alternative (StateT s m) where
     empty = StateT $ \ _ -> empty
     {-# INLINE empty #-}
     StateT m <|> StateT n = StateT $ \ s -> m s <|> n s
