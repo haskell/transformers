@@ -50,6 +50,8 @@ import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix (MonadFix(mfix))
 import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Maybe (fromMaybe)
+import Data.Foldable (Foldable(foldMap))
+import Data.Traversable (Traversable(traverse))
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics
 #endif
