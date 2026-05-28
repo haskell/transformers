@@ -186,6 +186,11 @@ instance (Monoid w, Monad m) => Applicative (RWST r w s m) where
         ~(x, s'',w') <- mx r s'
         return (f x, s'', w `mappend` w')
     {-# INLINE (<*>) #-}
+    liftA2 f (RWST mx) (RWST my) = RWST $ \ r s -> do
+        ~(x, s', w)  <- mx r s
+        ~(y, s'',w') <- my r s'
+        return (f x y, s'', w `mappend` w')
+    {-# INLINE liftA2 #-}
 
 instance (Monoid w, Alternative m, Monad m) => Alternative (RWST r w s m) where
     empty = RWST $ \ _ _ -> empty

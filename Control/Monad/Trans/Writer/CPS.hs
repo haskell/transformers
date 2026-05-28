@@ -168,6 +168,12 @@ instance (Monad m) => Applicative (WriterT w m) where
         return (f x, w'')
     {-# INLINE (<*>) #-}
 
+    liftA2 f (WriterT mx) (WriterT my) = WriterT $ \ w -> do
+        (x, w') <- mx w
+        (y, w'') <- my w'
+        return (f x y, w'')
+    {-# INLINE liftA2 #-}
+
 instance (Alternative m, Monad m) => Alternative (WriterT w m) where
     empty = WriterT $ const empty
     {-# INLINE empty #-}

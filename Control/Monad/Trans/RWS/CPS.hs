@@ -213,6 +213,12 @@ instance (Monad m) => Applicative (RWST r w s m) where
         return (f x, s'', w'')
     {-# INLINE (<*>) #-}
 
+    liftA2 f (RWST mx) (RWST my) = RWST $ \ r s w -> do
+        (x, s', w')   <- mx r s w
+        (y, s'', w'') <- my r s' w'
+        return (f x y, s'', w'')
+    {-# INLINE liftA2 #-}
+
 instance (Alternative m, Monad m) => Alternative (RWST r w s m) where
     empty = RWST $ \ _ _ _ -> empty
     {-# INLINE empty #-}

@@ -99,6 +99,11 @@ instance (Applicative f) => Applicative (Lift f) where
     Pure f <*> ax = f <$> ax
     Other f <*> ax = Other (f <*> unLift ax)
     {-# INLINE (<*>) #-}
+    liftA2 f (Pure x) (Pure y) = Pure (f x y)
+    liftA2 f (Pure x) (Other y) = Other (f x <$> y)
+    liftA2 f (Other x) (Pure y) = Other ((`f` y) <$> x)
+    liftA2 f (Other x) (Other y) = Other (liftA2 f x y)
+    {-# INLINE liftA2 #-}
 
 -- | A combination is 'Pure' only either part is.
 instance (Alternative f) => Alternative (Lift f) where

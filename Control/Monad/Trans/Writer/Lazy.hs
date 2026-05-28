@@ -188,6 +188,9 @@ instance (Monoid w, Applicative m) => Applicative (WriterT w m) where
     f <*> v = WriterT $ liftA2 k (runWriterT f) (runWriterT v)
       where k ~(a, w) ~(b, w') = (a b, w `mappend` w')
     {-# INLINE (<*>) #-}
+    liftA2 f x y = WriterT $ liftA2 k (runWriterT x) (runWriterT y)
+      where k ~(a, w) ~(b, w') = (f a b, w `mappend` w')
+    {-# INLINE liftA2 #-}
 
 instance (Monoid w, Alternative m) => Alternative (WriterT w m) where
     empty   = WriterT empty

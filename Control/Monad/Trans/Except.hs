@@ -195,6 +195,16 @@ instance (Monad m) => Applicative (ExceptT e m) where
                     Left e -> return (Left e)
                     Right x -> return (Right (k x))
     {-# INLINEABLE (<*>) #-}
+    liftA2 f (ExceptT x) (ExceptT y) = ExceptT $ do
+        mx <- x
+        case mx of
+            Left e -> return (Left e)
+            Right x' -> do
+                my <- y
+                case my of
+                    Left e -> return (Left e)
+                    Right y' -> return (Right (f x' y'))
+    {-# INLINEABLE liftA2 #-}
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 

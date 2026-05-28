@@ -42,9 +42,11 @@ module Control.Monad.Trans.Cont (
     liftLocal,
   ) where
 
+import Control.Applicative (Applicative(..))
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Data.Functor.Identity
+import Prelude hiding (Applicative(..))
 
 import qualified Control.Monad.Fail as Fail
 #ifdef __GLASGOW_HASKELL__
@@ -169,6 +171,8 @@ instance Applicative (ContT r m) where
     {-# INLINE pure #-}
     f <*> v = ContT $ \ c -> runContT f $ \ g -> runContT v (c . g)
     {-# INLINE (<*>) #-}
+    liftA2 f x y = ContT $ \ c -> runContT x $ \ x' -> runContT y (c . f x')
+    {-# INLINE liftA2 #-}
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 

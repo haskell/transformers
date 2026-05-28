@@ -189,6 +189,11 @@ instance (Monoid w, Monad m) => Applicative (AccumT w m) where
       ~(v, w'') <- runAccumT mv (w `mappend` w')
       return (f v, w' `mappend` w'')
     {-# INLINE (<*>) #-}
+    liftA2 f mx my = AccumT $ \ w -> do
+      ~(x, w')  <- runAccumT mx w
+      ~(y, w'') <- runAccumT my (w `mappend` w')
+      return (f x y, w' `mappend` w'')
+    {-# INLINE liftA2 #-}
 
 instance (Monoid w, Alternative m, Monad m) => Alternative (AccumT w m) where
     empty   = AccumT $ const empty

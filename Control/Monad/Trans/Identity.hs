@@ -107,6 +107,8 @@ instance (Applicative m) => Applicative (IdentityT m) where
     {-# INLINE pure #-}
     (<*>) = lift2IdentityT (<*>)
     {-# INLINE (<*>) #-}
+    liftA2 f = lift2IdentityT (liftA2 f)
+    {-# INLINE liftA2 #-}
     (*>) = lift2IdentityT (*>)
     {-# INLINE (*>) #-}
     (<*) = lift2IdentityT (<*)

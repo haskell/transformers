@@ -144,6 +144,16 @@ instance (Monad m) => Applicative (MaybeT m) where
                     Nothing -> return Nothing
                     Just x  -> return (Just (f x))
     {-# INLINE (<*>) #-}
+    liftA2 f mx my = MaybeT $ do
+        mb_x <- runMaybeT mx
+        case mb_x of
+            Nothing -> return Nothing
+            Just x  -> do
+                mb_y <- runMaybeT my
+                case mb_y of
+                    Nothing -> return Nothing
+                    Just y  -> return (Just (f x y))
+    {-# INLINE liftA2 #-}
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 

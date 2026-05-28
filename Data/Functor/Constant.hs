@@ -112,6 +112,8 @@ instance (Monoid a) => Applicative (Constant a) where
     {-# INLINE pure #-}
     Constant x <*> Constant y = Constant (x `mappend` y)
     {-# INLINE (<*>) #-}
+    liftA2 _ (Constant x) (Constant y) = Constant (x `mappend` y)
+    {-# INLINE liftA2 #-}
 
 instance (Monoid a) => Monoid (Constant a b) where
     mempty = Constant mempty

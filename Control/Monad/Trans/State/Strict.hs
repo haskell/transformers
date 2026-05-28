@@ -205,6 +205,11 @@ instance (Monad m) => Applicative (StateT s m) where
         (x, s'') <- mx s'
         return (f x, s'')
     {-# INLINE (<*>) #-}
+    liftA2 f (StateT mx) (StateT my) = StateT $ \ s -> do
+        (x, s') <- mx s
+        (y, s'') <- my s'
+        return (f x y, s'')
+    {-# INLINE liftA2 #-}
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 

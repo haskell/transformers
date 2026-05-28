@@ -105,6 +105,12 @@ instance (Monad m) => Applicative (SelectT r m) where
         f <- gf ((>>= k) . h)
         h f
     {-# INLINE (<*>) #-}
+    liftA2 f (SelectT gx) (SelectT gy) = SelectT $ \ k -> do
+        let SelectT gf = fmap f (SelectT gx)
+            h fun = liftM fun (gy (k . fun))
+        fun <- gf ((>>= k) . h)
+        h fun
+    {-# INLINE liftA2 #-}
     m *> k = m >>= \_ -> k
     {-# INLINE (*>) #-}
 

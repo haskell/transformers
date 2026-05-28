@@ -77,6 +77,8 @@ instance (Applicative f) => Applicative (Reverse f) where
     {-# INLINE pure #-}
     Reverse f <*> Reverse a = Reverse (f <*> a)
     {-# INLINE (<*>) #-}
+    liftA2 f (Reverse x) (Reverse y) = Reverse (liftA2 f x y)
+    {-# INLINE liftA2 #-}
 
 -- | Derived instance.
 instance (Alternative f) => Alternative (Reverse f) where
