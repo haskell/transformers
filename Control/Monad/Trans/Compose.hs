@@ -8,8 +8,8 @@
 {-# LANGUAGE Trustworthy #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Control.Monad.Trans.Except
--- Copyright   :  (C) 2026 The MTL Authors
+-- Module      :  Control.Monad.Trans.Compose
+-- Copyright   :  (C) 2026 The transformers Authors
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- This combines two transformers into a single compound transformer.
