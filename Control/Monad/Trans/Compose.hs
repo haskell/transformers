@@ -1,38 +1,59 @@
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-#endif
+{-# LANGUAGE Trustworthy #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Control.Monad.Trans.Except
+-- Copyright   :  (C) 2026 The MTL Authors
+-- License     :  BSD-style (see the file LICENSE)
+--
+-- This combines two transformers into a single compound transformer.
+-- Potentially useful for when a single transformer is required as a type
+-- argument.
+-----------------------------------------------------------------------------
 
-module Control.Monad.Trans.Compose where
+module Control.Monad.Trans.Compose (
+    ComposeT(..),
+) where
 
+import Data.Functor.Compose (Compose)
+import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans (lift))
 import Data.Kind (Type)
+#ifdef __GLASGOW_HASKELL__
+import GHC.Generics (Generic)
+#endif
 
 infixr 9 `ComposeT`
 
-#if __GLASGOW_HASKELL__ >= 810
-type ComposeT :: (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
+-- | Like its analogue @Compose@, @ComposeT@ is polykinded; typically it will
+-- have kind
+--
+-- > ((Type -> Type) -> Type -> Type) -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> Type -> Type
+--
+-- After enabling @{-# LANGUAGE TypeOperators #-}@, the `ComposeT` type
+-- constructor may be written in infix notation in signatures and is
+-- right-associative, mirroring `(.)`.  Example:
+--
+-- > type FallibleCountT = ExceptT String `ComposeT` StateT Int
+-- >
+-- > checkNonNeg :: (Monad m) => FallibleCountT m ()
+-- > checkNonNeg = ComposeT $ do
+-- >     count <- lift get
+-- >     when (count < 0) $ `throwError` $ "count is negative (" ++ show count ++ ")"
+--
+type ComposeT :: forall k1 k2 k3. (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
+newtype ComposeT t1 t2 m a = ComposeT { runComposeT :: t1 (t2 m) a }
+    deriving newtype (Functor, Applicative, Monad, MonadIO)
+#ifdef __GLASGOW_HASKELL__
+    deriving stock (Generic)
 #endif
-newtype ComposeT trans1 trans2 m a = ComposeT (trans1 (trans2 m) a)
-#if __GLASGOW_HASKELL__ >= 806
-    deriving newtype (Functor, Applicative, Monad)
-#else
-instance (Functor (trans1 (trans2 m))) => Functor (ComposeT trans1 trans2 m) where
-    fmap f (ComposeT x) = ComposeT (fmap f x)
 
-instance (Applicative (trans1 (trans2 m))) => Applicative (ComposeT trans1 trans2 m) where
-    pure x = ComposeT (pure x)
-    ComposeT a <*> ComposeT b = ComposeT (a <*> b)
-
-instance (Monad (trans1 (trans2 m))) => Monad (ComposeT trans1 trans2 m) where
-    return x = ComposeT (return x)
-    (ComposeT x) >>= f = ComposeT (x >>= (\(ComposeT x') -> x') . f)
-#endif
-
-instance (MonadTrans trans1, MonadTrans trans2) => MonadTrans (ComposeT trans1 trans2) where
+instance (MonadTrans t1, MonadTrans t2) => MonadTrans (ComposeT t1 t2) where
     lift = ComposeT . lift . lift
+    {-# INLINE lift #-}
