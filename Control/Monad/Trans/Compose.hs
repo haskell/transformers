@@ -31,7 +31,7 @@ import GHC.Generics (Generic)
 
 infixr 9 `ComposeT`
 
--- | Like its analogue @Compose@, @ComposeT@ is polykinded; typically it will
+-- | Like its analogue `Compose`, @ComposeT@ is polykinded; typically it will
 -- have kind
 --
 -- > ((Type -> Type) -> Type -> Type) -> ((Type -> Type) -> Type -> Type) -> (Type -> Type) -> Type -> Type
