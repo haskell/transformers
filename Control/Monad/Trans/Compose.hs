@@ -45,7 +45,7 @@ infixr 9 `ComposeT`
 -- > checkNonNeg :: (Monad m) => FallibleCountT m ()
 -- > checkNonNeg = ComposeT $ do
 -- >     count <- lift get
--- >     when (count < 0) $ `throwError` $ "count is negative (" ++ show count ++ ")"
+-- >     when (count < 0) $ throwE $ "count is negative (" ++ show count ++ ")"
 --
 type ComposeT :: forall k1 k2 k3. (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
 newtype ComposeT t1 t2 m a = ComposeT { runComposeT :: t1 (t2 m) a }
