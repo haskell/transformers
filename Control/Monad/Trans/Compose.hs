@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -18,12 +20,18 @@
 -----------------------------------------------------------------------------
 
 module Control.Monad.Trans.Compose (
-    ComposeT(..),
+    ComposeT (..),
 ) where
 
-import Data.Functor.Compose (Compose)
+import Control.Applicative (Alternative)
+import Control.Monad (MonadPlus)
+import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans (lift))
+import Control.Monad.Zip (MonadZip)
+import Data.Data (Data)
+import Data.Functor.Compose (Compose)
+import Data.Functor.Contravariant (Contravariant)
 import Data.Kind (Type)
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics (Generic)
@@ -47,12 +55,42 @@ infixr 9 `ComposeT`
 -- >     count <- lift get
 -- >     when (count < 0) $ throwE $ "count is negative (" ++ show count ++ ")"
 --
-type ComposeT :: forall k1 k2 k3. (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
+type ComposeT :: forall k1 k2 k3.
+    (k3 -> k2 -> Type) -> (k1 -> k3) -> (k1 -> k2 -> Type)
 newtype ComposeT t1 t2 m a = ComposeT { runComposeT :: t1 (t2 m) a }
-    deriving newtype (Functor, Applicative, Monad, MonadIO)
+    deriving stock (
+        Functor,
+        Traversable,
+        Foldable,
+        Eq,
+        Ord,
+        Read,
+        Show,
 #ifdef __GLASGOW_HASKELL__
-    deriving stock (Generic)
+        Generic,
 #endif
+        Data)
+    deriving newtype (
+        Contravariant,
+        Applicative,
+        Monad,
+        MonadIO,
+        Alternative,
+        MonadFail,
+        MonadPlus,
+        MonadFix,
+        MonadZip,
+        Semigroup,
+        Monoid,
+        Bounded,
+        Enum,
+        Fractional,
+        Floating,
+        Real,
+        RealFrac,
+        RealFloat,
+        Integral,
+        Num)
 
 instance (MonadTrans t1, MonadTrans t2) => MonadTrans (ComposeT t1 t2) where
     lift = ComposeT . lift . lift
