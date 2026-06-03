@@ -160,20 +160,16 @@ newtype StateT s m a = StateT { runStateT :: s -> m (a,s) }
 -- and return the final value, discarding the final state.
 --
 -- * @'evalStateT' m s = 'liftM' 'fst' ('runStateT' m s)@
-evalStateT :: (Monad m) => StateT s m a -> s -> m a
-evalStateT m s = do
-    (a, _) <- runStateT m s
-    return a
+evalStateT :: Functor m => StateT s m a -> s -> m a
+evalStateT m s = (\(a, _) -> a) <$> runStateT m s
 {-# INLINE evalStateT #-}
 
 -- | Evaluate a state computation with the given initial state
 -- and return the final state, discarding the final value.
 --
 -- * @'execStateT' m s = 'liftM' 'snd' ('runStateT' m s)@
-execStateT :: (Monad m) => StateT s m a -> s -> m s
-execStateT m s = do
-    (_, s') <- runStateT m s
-    return s'
+execStateT :: Functor m => StateT s m a -> s -> m s
+execStateT m s = (\(_, s') -> s') <$> runStateT m s
 {-# INLINE execStateT #-}
 
 -- | Map both the return value and final state of a computation using
