@@ -30,6 +30,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Zip (MonadZip)
 import Data.Data (Data)
+import Data.Functor.Classes (Eq1, Ord1)
 import Data.Functor.Compose (Compose)
 import Data.Functor.Contravariant (Contravariant)
 import Data.Kind (Type)
@@ -82,6 +83,8 @@ newtype ComposeT t1 t2 m a = ComposeT { runComposeT :: t1 (t2 m) a }
         MonadZip,
         Semigroup,
         Monoid,
+        Eq1,
+        Ord1,
         Bounded,
         Enum,
         Fractional,
