@@ -41,7 +41,6 @@ import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix (MonadFix(mfix))
 import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Foldable
-import Data.Traversable (Traversable(traverse))
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
 #ifdef __GLASGOW_HASKELL__
 import GHC.Generics
