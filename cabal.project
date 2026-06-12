@@ -1,6 +1,10 @@
 
-packages: .
+packages:
+  .
+  test
 
 program-options
   ghc-options:
     -Wall -Wredundant-constraints -Werror -Wwarn=unused-imports
+
+tests: True

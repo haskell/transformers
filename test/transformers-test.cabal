@@ -1,0 +1,46 @@
+cabal-version: 1.18
+name: transformers-test
+version: 0
+build-type: Simple
+
+library
+  default-language: Haskell2010
+  build-depends: base >=4.14 && <5
+  hs-source-dirs: ..
+  exposed-modules:
+    Control.Applicative.Backwards
+    Control.Applicative.Lift
+    Control.Monad.Signatures
+    Control.Monad.Trans.Accum
+    Control.Monad.Trans.Class
+    Control.Monad.Trans.Compose
+    Control.Monad.Trans.Cont
+    Control.Monad.Trans.Except
+    Control.Monad.Trans.Identity
+    Control.Monad.Trans.Maybe
+    Control.Monad.Trans.Reader
+    Control.Monad.Trans.RWS
+    Control.Monad.Trans.RWS.CPS
+    Control.Monad.Trans.RWS.Lazy
+    Control.Monad.Trans.RWS.Strict
+    Control.Monad.Trans.Select
+    Control.Monad.Trans.State
+    Control.Monad.Trans.State.Lazy
+    Control.Monad.Trans.State.Strict
+    Control.Monad.Trans.Writer
+    Control.Monad.Trans.Writer.CPS
+    Control.Monad.Trans.Writer.Lazy
+    Control.Monad.Trans.Writer.Strict
+    Data.Functor.Constant
+    Data.Functor.Reverse
+
+test-suite ComposeT
+  type: exitcode-stdio-1.0
+  hs-source-dirs: .
+  main-is: main.hs
+  default-language: Haskell2010
+  other-modules:
+    ComposeT
+  build-depends:
+    base,
+    transformers-test
