@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Main (main) where
+module ComposeT (test) where
 
 import Data.Functor.Identity
 import Control.Monad
@@ -17,8 +17,8 @@ checkNonNeg = ComposeT $ do
     count <- lift get
     when (count < 0) $ throwE $ "count is negative (" ++ show count ++ ")"
 
-main :: IO ()
-main = do
+test :: IO ()
+test = do
     let negateAndCheck = lift (modify negate) >> runComposeT checkNonNeg
         unitOrE = runIdentity $ evalStateT (runExceptT negateAndCheck) (-10)
 
