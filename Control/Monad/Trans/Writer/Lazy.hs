@@ -178,7 +178,7 @@ instance (Foldable f) => Foldable (WriterT w f) where
 
 instance (Traversable f) => Traversable (WriterT w f) where
     traverse f = fmap WriterT . traverse f' . runWriterT where
-       f' (a, b) = fmap (\ c -> (c, b)) (f a)
+       f' ~(a, b) = fmap (\ c -> (c, b)) (f a)
     {-# INLINE traverse #-}
 
 instance (Monoid w, Applicative m) => Applicative (WriterT w m) where

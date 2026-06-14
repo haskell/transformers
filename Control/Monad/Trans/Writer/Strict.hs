@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE BangPatterns #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Trans.Writer.Strict
@@ -170,7 +171,7 @@ mapWriterT f m = WriterT $ f (runWriterT m)
 {-# INLINE mapWriterT #-}
 
 instance (Functor m) => Functor (WriterT w m) where
-    fmap f = mapWriterT $ fmap $ \ (a, w) -> (f a, w)
+    fmap f = mapWriterT $ fmap $ \ (a, !w) -> (f a, w)
     {-# INLINE fmap #-}
 
 instance (Foldable f) => Foldable (WriterT w f) where
