@@ -1,5 +1,6 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -9,97 +10,100 @@
 
 module WriterStrictness (test) where
 
-import Control.Applicative
-import Control.Exception (ErrorCall, evaluate)
-import Control.Monad
-import Control.Monad.Fix
-import Control.Monad.IO.Class
-import Control.Monad.Signatures (CallCC, Catch)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Cont
-import Control.Monad.Trans.Reader (ReaderT (..), ask)
+import           Control.Applicative
+import           Control.Exception (ErrorCall (..), Exception,
+                                    SomeException (..), evaluate, throw)
+import           Control.Monad
+import           Control.Monad.Fix
+import           Control.Monad.IO.Class
+import           Control.Monad.Signatures (CallCC, Catch)
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except (ExceptT (..), throwE)
+import           Control.Monad.Trans.Reader (ReaderT (..), ask)
 import qualified Control.Monad.Trans.Writer.CPS as CPS
 import qualified Control.Monad.Trans.Writer.Lazy as Lazy
 import qualified Control.Monad.Trans.Writer.Strict as Strict
-import Control.Monad.Zip
-import Data.Coerce
-import Data.Functor.Contravariant
-import Data.Functor.Identity
-import Data.Maybe
-import Data.Monoid
-import Test.ChasingBottoms.IsBottom (isBottom)
-import Test.QuickCheck
-import Test.QuickCheck.Monadic (assertExceptionIO, monadicIO, run)
-import Test.Tasty
-import Test.Tasty.QuickCheck
-import Utils
+import           Control.Monad.Zip
+
+import           Data.Coerce
+import           Data.Functor.Contravariant
+import           Data.Functor.Identity
+import           Data.Maybe
+import           Data.Monoid
+
+import           Test.ChasingBottoms.IsBottom (isBottom)
+import           Test.QuickCheck
+import           Test.QuickCheck.Monadic (assertExceptionIO, monadicIO, run)
+import           Test.Tasty
+import           Test.Tasty.QuickCheck
+
+import           Utils
 
 test :: IO ()
 test = defaultMain $ testGroup "Writer" strictPairTests
 
-data WriterBase writer = WriterBase
-  { writer :: forall w m a. (Monoid w) => m (a, w) -> writer w m a,
-    runWriter :: forall w m a. (Monoid w) => writer w m a -> m (a, w)
+data WriterBase writer = WriterBase {
+    writer    :: forall w m a. m (a, w) -> writer w m a,
+    runWriter :: forall w m a. writer w m a -> m (a, w)
   }
 
 -- CPS Writer requires Functor
-data WriterBaseF writer = WriterBaseF
-  { writerF :: forall w m a. (Functor m, Monoid w) => m (a, w) -> writer w m a,
+data WriterBaseF writer = WriterBaseF {
+    writerF    :: forall w m a. (Functor m, Monoid w) => m (a, w) -> writer w m a,
     runWriterF :: forall w m a. (Functor m, Monoid w) => writer w m a -> m (a, w)
   }
 
-data WriterMethods writer = WriterMethods
-  { execWriterT :: forall w m a. (Monad m, Monoid w) => writer w m a -> m w,
-    mapWriter :: forall w m a w' n b. (Monad n, Monoid w, Monoid w') => (m (a, w) -> n (b, w')) -> writer w m a -> writer w' n b,
-    tell :: forall w m. (Monad m, Monoid w) => w -> writer w m (),
-    listen :: forall w m a. (Monad m, Monoid w) => writer w m a -> writer w m (a, w),
-    pass :: forall w m a. (Monad m, Monoid w) => writer w m (a, w -> w) -> writer w m a,
-    censor :: forall w m a. (Monad m, Monoid w) => (w -> w) -> writer w m a -> writer w m a,
-    liftCallCC :: forall w m a b. (Monad m, Monoid w) => CallCC m (a, w) (b, w) -> CallCC (writer w m) a b,
-    liftCatch :: forall w m a e. Catch e m (a, w) -> Catch e (writer w m) a
+data WriterMethods writer w m = WriterMethods {
+    execWriterT :: forall a.   writer w m a -> m w,
+    mapWriter   :: forall a w' n b. (Monad n, Monoid w') => (m (a, w) -> n (b, w')) -> writer w m a -> writer w' n b,
+    tell        ::              w -> writer w m (),
+    listen      :: forall  a.   writer w m a -> writer w m (a, w),
+    pass        :: forall  a.   writer w m (a, w -> w) -> writer w m a,
+    censor      :: forall  a.   (w -> w) -> writer w m a -> writer w m a,
+    liftCallCC  :: forall  a b. CallCC m (a, w) (b, w) -> CallCC (writer w m) a b,
+    liftCatch   :: forall  a e. Catch e m (a, w) -> Catch e (writer w m) a
   }
 
-data StrictPairMethodsExpectations = StrictPairMethodsExpectations
-  { expect_bot_execWriter :: Bool -> Bool,
-    expect_bot_mapWriter :: Bool -> Bool,
-    expect_bot_tell :: Bool -> Bool,
-    expect_bot_listen :: Bool -> Bool,
-    expect_bot_pass :: Bool -> Bool,
-    expect_bot_censor :: Bool -> Bool,
-    expect_bot_liftCallCC :: Bool -> Bool,
-    expect_bot_liftCatch :: Bool -> Bool,
+data StrictPairMethodsExpectations = StrictPairMethodsExpectations {
+    expect_bot_execWriter  :: Bool -> Bool,
+    expect_bot_mapWriter   :: Bool -> Bool,
+    expect_bot_tell        :: Bool -> Bool,
+    expect_bot_listen      :: Bool -> Bool,
+    expect_bot_pass        :: Bool -> Bool,
+    expect_bot_censor      :: Bool -> Bool,
+    expect_bot_liftCallCC  :: Bool -> Bool,
+    expect_bot_liftCatch   :: Bool -> Bool,
     expect_bot_combination :: Bool -> Bool -> Bool -> Bool -> Bool
   }
 
-data StrictPairMonadicExpectations = StrictPairMonadicExpectations
-  { expect_bot_functor_fmap :: Bool -> Bool,
-    expect_bot_monad_bind :: Bool -> Bool -> Bool,
+data StrictPairMonadicExpectations = StrictPairMonadicExpectations {
+    expect_bot_functor_fmap      :: Bool -> Bool,
+    expect_bot_monad_bind        :: Bool -> Bool -> Bool,
     expect_bot_applicative_apply :: Bool -> Bool -> Bool,
-    expect_bot_alternative_list :: [Bool] -> [Bool] -> Bool,
+    expect_bot_alternative_list  :: [Bool] -> [Bool] -> Bool,
     expect_bot_alternative_maybe :: Maybe Bool -> Maybe Bool -> Bool,
-    expect_bot_mfix :: Bool -> Bool,
-    expect_bot_lift :: Bool -> Bool,
-    expect_bot_nested :: Bool -> Bool -> Bool
+    expect_bot_mfix              :: Bool -> Bool,
+    expect_bot_lift              :: Bool -> Bool,
+    expect_bot_nested            :: Bool -> Bool -> Bool 
   }
 
-data StrictPairTypeClassExpectations = StrictPairTypeClassExpectations
-  { expect_bot_foldMap :: Bool -> Bool,
-    expect_bot_traverse :: Bool -> Bool,
-    expect_bot_mzipWith :: Bool -> Bool -> Bool,
+data StrictPairTypeClassExpectations = StrictPairTypeClassExpectations {
+    expect_bot_foldMap   :: Bool -> Bool,
+    expect_bot_traverse  :: Bool -> Bool,
+    expect_bot_mzipWith  :: Bool -> Bool -> Bool,
     expect_bot_contramap :: Bool -> Bool
   }
 
 lazyBaseF :: WriterBaseF Lazy.WriterT
-lazyBaseF =
-  WriterBaseF {writerF = Lazy.WriterT, runWriterF = Lazy.runWriterT}
+lazyBaseF = WriterBaseF {writerF = Lazy.WriterT, runWriterF = Lazy.runWriterT}
 
 lazyBase :: WriterBase Lazy.WriterT
 lazyBase = WriterBase {writer = Lazy.WriterT, runWriter = Lazy.runWriterT}
 
-lazyWriterMethods :: WriterMethods Lazy.WriterT
+lazyWriterMethods :: (Monad m, Monoid w) => WriterMethods Lazy.WriterT w m
 lazyWriterMethods =
-  WriterMethods
-    { execWriterT = Lazy.execWriterT,
+  WriterMethods {
+      execWriterT = Lazy.execWriterT,
       mapWriter = Lazy.mapWriterT,
       tell = Lazy.tell,
       listen = Lazy.listen,
@@ -115,7 +119,7 @@ strictBaseF = WriterBaseF {writerF = Strict.WriterT, runWriterF = Strict.runWrit
 strictBase :: WriterBase Strict.WriterT
 strictBase = WriterBase {writer = Strict.WriterT, runWriter = Strict.runWriterT}
 
-strictWriterMethods :: WriterMethods Strict.WriterT
+strictWriterMethods :: (Monad m, Monoid w) => WriterMethods Strict.WriterT w m
 strictWriterMethods =
   WriterMethods
     { execWriterT = Strict.execWriterT,
@@ -131,7 +135,7 @@ strictWriterMethods =
 cpsBase :: WriterBaseF CPS.WriterT
 cpsBase = WriterBaseF {writerF = CPS.writerT, runWriterF = CPS.runWriterT}
 
-cpsWriterMethods :: WriterMethods CPS.WriterT
+cpsWriterMethods :: (Monad m, Monoid w) => WriterMethods CPS.WriterT w m
 cpsWriterMethods =
   WriterMethods
     { execWriterT = CPS.execWriterT,
@@ -177,7 +181,7 @@ strictPairTests =
           expect_bot_alternative_maybe = \x y -> fromMaybe False $ x <|> y,
           expect_bot_mfix = id, -- NOTE: same as strict
           expect_bot_lift = const False,
-          expect_bot_nested = const2 False
+          expect_bot_nested = const2  False
         }
     ++ testStrictPairMonadic
       "Strict"
@@ -293,7 +297,7 @@ testStrictPairMethods ::
   String ->
   (forall a. m a -> a) ->
   WriterBaseF writer ->
-  WriterMethods writer ->
+  WriterMethods writer String m ->
   StrictPairMethodsExpectations ->
   [TestTree]
 testStrictPairMethods testLabel runMonad WriterBaseF {..} WriterMethods {..} StrictPairMethodsExpectations {..} =
@@ -327,9 +331,7 @@ testStrictPairMethods testLabel runMonad WriterBaseF {..} WriterMethods {..} Str
       (prop_name "listen")
       ( \(Bot v :: (Bot ((), String))) ->
           test_pair_strictness_monad runW (expect_bot_listen (isBottom v)) $
-            listen $
-              writerF $
-                returnM v
+            listen $ writerF $ returnM v
       ),
     testProperty
       (prop_name "pass")
@@ -528,30 +530,54 @@ testStrictPairMonadic testLabel WriterBaseF {..} StrictPairMonadicExpectations {
       ),
     testProperty
       (prop_name "Monad nested")
-      ( \(Bot v :: (Bot (Int, String)))
-         (Bot w :: (Bot (Int, String))) ->
+      ( \
+         (Bot u :: (Bot (Int, String)))
+         (Bot v :: (Bot (Int, String)))
+         (Bot w :: (Bot (Int, String)))
+                ->
             let expected = expect_bot_nested (isBottom v) (isBottom w)
-                result :: ContT Int (ReaderT Int (writer String IO)) Int
-                result = do
+                result :: TestMonad TestException (writer String IO) Int
+                result = TestMonad $ do
                   s <- lift $ lift $ writerF $ return v
+                  a <- lift $ lift  $ writerF $ return w
                   t <- lift ask
-                  u <-
-                    callCC
-                      ( \f -> do
-                          x <- f $ s + t
-                          f x
-                      )
-                  a <- lift $ lift $ writerF $ return w
-                  return $ u * a
-                q =
-                  let reader = runContT result return
-                   in runWriterF $ runReaderT reader 1
-             in test_pair_strictness_IO (runWriterF @String) expected $
-                  liftIO q
+                  when (isBottom u) $ throwE TestException
+                  return $ s + t * a
+             in test_pair_strictness_IO (runWriterF @String) (expected || isBottom u) $
+               runTestMonad result 
       )
   ]
   where
     prop_name methodName = "[" <> testLabel <> "]" <> methodName
+
+newtype TestMonad e m a = TestMonad (ExceptT e (ReaderT Int m) a)
+  deriving newtype (Functor, Applicative, Monad)
+
+data TestException = TestException
+  deriving (Show, Eq)
+
+instance Exception TestException where
+
+instance MonadTrans (TestMonad e) where
+  lift m = TestMonad $ lift $ lift m
+
+-- runTestMonad :: (MonadIO m, Exception e) => TestMonad e m a -> m a
+runTestMonad :: (MonadIO m) => TestMonad e m a -> m a
+runTestMonad (TestMonad m)  = do
+    result <- x
+    case result of
+      Right v -> return v
+      -- Left _  -> liftIO $ evaluate $ error "OOP"
+      -- Left _  -> liftIO $ evaluate $ error "OOP"
+      Left _  -> liftIO $ evaluate bottom
+      -- Left _  -> return y
+  where x = (runReaderT $ runExceptT m) 0
+
+-- testMonad :: (Monad m) => m a -> TestMonad m a
+-- testMonad = TestMonad . lift . lift
+
+-- runTestMonad :: (Monad m) => TestMonad m Int -> (Int -> m Int) -> Int -> m Int
+-- runTestMonad (TestMonad m) f = runReaderT (runContT m (lift . f))
 
 test_pair_strictness_monad :: forall k writer w (m :: k) a b. (writer w m a -> b) -> Bool -> writer w m a -> Property
 test_pair_strictness_monad runW True wr =

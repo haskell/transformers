@@ -1,10 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
--- Needed since Typeable is redundant in GHC 9.14
-{-# OPTIONS_GHC -Wwarn=redundant-constraints #-}
 
 module Utils
   ( Bot (..),
@@ -14,9 +13,10 @@ module Utils
   )
 where
 
-import Data.Data
-import Test.ChasingBottoms.IsBottom (isBottom)
-import Test.QuickCheck
+import           Data.Data
+
+import           Test.ChasingBottoms.IsBottom (isBottom)
+import           Test.QuickCheck
 
 bottom :: forall a. a
 bottom = error "<bottom>"
@@ -40,7 +40,12 @@ newtype F1 a b = F1 (a -> b)
 unF1 :: F1 a b -> a -> b
 unF1 (F1 f) = f
 
+#if __GLASGOW_HASKELL__ < 914
+-- Typeable is redundant in GHC 9.14
 instance forall a b. (Typeable a, Typeable b) => Show (F1 a b) where
+#else
+instance forall a b. Show (F1 a b) where
+#endif
   show :: F1 a b -> String
   show _ = a <> " -> " <> b
     where
