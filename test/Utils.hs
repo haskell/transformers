@@ -8,7 +8,6 @@ module Utils
   ( Bot (..),
     bottom,
     F1 (..),
-    unF1,
   )
 where
 
@@ -36,13 +35,10 @@ instance Arbitrary a => Arbitrary (Bot a) where
       ]
 
 -- | Arbitrary function of 1 argument
-newtype F1 a b = F1 (a -> b)
+newtype F1 a b = F1 { unF1::a -> b }
   deriving newtype (Arbitrary)
 
-unF1 :: F1 a b -> a -> b
-unF1 (F1 f) = f
-
-instance forall a b. (Typeable a, Typeable b) => Show (F1 a b) where
+instance (Typeable a, Typeable b) => Show (F1 a b) where
   show :: F1 a b -> String
   show _ = a <> " -> " <> b
     where
