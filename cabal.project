@@ -1,5 +1,7 @@
 
-packages: .
+packages:
+  .
+  test
 
 program-options
   ghc-options:

@@ -47,7 +47,7 @@ jobs:
         run: cabal build
 
       - name: Test
-        run: cabal test
+        run: cabal test all
 
   mhs:
     runs-on: ubuntu-latest
