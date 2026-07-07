@@ -34,7 +34,7 @@ test-suite tests
   main-is: main.hs
   default-language: Haskell2010
   other-modules:
-    Utils
+    Arbitrary
     ComposeT
     WriterStrictness
   build-depends:

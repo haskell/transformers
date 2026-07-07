@@ -38,7 +38,7 @@ import           Test.QuickCheck.Monadic (assertExceptionIO, monadicIO, run)
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 
-import           Utils
+import           Arbitrary
 
 test :: IO ()
 test = defaultMain $ testGroup "Writer" strictPairTests
