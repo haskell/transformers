@@ -1,15 +1,20 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module WriterStrictness (test) where
+
+import           Arbitrary
 
 import           Control.Applicative
 import           Control.Arrow (first)
 import           Control.Exception (ErrorCall (..), SomeException (..),
                                     evaluate)
+import           Control.Exception.Base (displayException)
 import           Control.Monad
 import           Control.Monad.Fix
 import           Control.Monad.IO.Class
@@ -27,6 +32,7 @@ import           Data.Coerce
 import           Data.Either (fromRight)
 import           Data.Functor.Contravariant
 import           Data.Functor.Identity
+import           Data.List (isPrefixOf)
 import           Data.Maybe
 import           Data.Monoid
 
@@ -38,10 +44,13 @@ import           Test.QuickCheck.Monadic (assertExceptionIO, monadicIO, run)
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 
-import           Arbitrary
-
 test :: IO ()
-test = defaultMain $ testGroup "Writer" strictPairTests
+test = defaultMain $ testGroup "Writer"
+  [
+    testGroup "Pair (a, w)" strictPairTests2,
+    testGroup "Log w" strictLogTest,
+    testGroup "Pair OLD" strictPairTests
+  ]
 
 data WriterBase writer
   = WriterBase
@@ -133,6 +142,127 @@ cpsWriterLifts =
   WriterLifts
     { liftCatch = CPS.liftCatch
     }
+
+
+data WriterProp a = WriterProp
+  { lazy   :: Prop a,
+    strict :: Prop a,
+    cps    :: Prop a
+  }
+
+data Prop a = Prop a | Unsupported
+
+runWriterProps :: Testable a => String -> WriterProp a -> TestTree
+runWriterProps name WriterProp {..} =
+  testGroup name $ catMaybes [
+    runProp "Lazy" lazy,
+    runProp "Strict" strict,
+    runProp "CPS" cps
+  ]
+    where
+      runProp monadName (Prop a) = Just $ testProperty monadName a
+      runProp _ Unsupported     = Nothing
+
+strictPairTests2 :: [TestTree]
+strictPairTests2 = [
+  runWriterProps "execWriter" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ Lazy.execWriterT $ Lazy.writer v,
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ Strict.execWriterT $ Strict.writer v,
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ CPS.execWriterT $ CPS.writer v
+  },
+  runWriterProps "mapWriter" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ Lazy.runWriterT $ Lazy.mapWriterT id $ Lazy.writer v,
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ Strict.runWriterT $ Strict.mapWriterT id $ Strict.writer v,
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: (Int, String))) -> isStrict v $ withBaseMonad m $ CPS.runWriterT $ CPS.mapWriterT id $ CPS.writer v
+  },
+  runWriterProps "listen" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: (Float, Sum Int))) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.listen $ Lazy.writer v,
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: (Float, Sum Int))) -> isStrict v $ withBaseMonad m $ Strict.runWriterT $ Strict.listen $ Strict.writer v,
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: (Float, Sum Int))) -> isStrict v $ withBaseMonad m $ CPS.runWriterT $ CPS.listen $ CPS.writer v
+  },
+  runWriterProps "pass" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: ((), F1 String String))) ->
+        let v' = coerce v :: ((), String -> String)
+        in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.pass $ Lazy.writer (v', []),
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: ((), F1 String String))) ->
+        let v' = coerce v :: ((), String -> String)
+        in isStrict v $ withBaseMonad m $ Strict.runWriterT $ Strict.pass $ Strict.writer (v', []),
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: ((), F1 String String))) ->
+        let v' = coerce v :: ((), String -> String)
+        in isStrict v $ withBaseMonad m $ CPS.runWriterT $ CPS.pass $ CPS.writer (v', [])
+  },
+  runWriterProps "censor" WriterProp {
+      lazy   = Prop $ \(m :: BaseMonad, Bot (v :: ((), [Int]))) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.censor id $ Lazy.writer v,
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: ((), [Int]))) -> isStrict v $ withBaseMonad m $ Strict.runWriterT $ Strict.censor id $ Strict.writer v,
+      cps    = Prop $ \(m :: BaseMonad, Bot (v :: ((), [Int]))) -> isStrict v $ withBaseMonad m $ CPS.runWriterT $ CPS.censor id $ CPS.writer v
+  },
+
+  -- == Functor/Applicative/Monad ==
+  runWriterProps "Monad: >>=" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot v :: (Bot ((), String)), Bot w :: (Bot (Int, String))) ->
+          isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer v >>= const (Lazy.writer w),
+      strict = Prop $ \(m :: BaseMonad, Bot v :: (Bot ((), String)), Bot w :: (Bot (Int, String))) ->
+          isStrict2 v w $ withBaseMonad m $ Strict.runWriterT $ Strict.writer v >>= const (Strict.writer w),
+      cps =    Prop $ \(m :: BaseMonad, Bot v :: (Bot ((), String)), Bot w :: (Bot (Int, String))) ->
+          isStrict2 v w $ withBaseMonad m $ CPS.runWriterT $ CPS.writer v >>= const (CPS.writer w)
+    },
+  runWriterProps "Alternative: <|>" WriterProp {
+      lazy     = Prop $ \(v :: [Bot (Int, String)], w :: [Bot (Int, String)]) ->
+          let v' = coerce v :: [(Int, String)]
+              w' = coerce w :: [(Int, String)]
+           -- same as underlying alternative 
+           in (isBottom <$> Lazy.runWriterT (Lazy.WriterT v' <|> Lazy.WriterT w')) === (isBottom <$> v' ++ w'),
+      strict   = Prop $ \(v :: [Bot (Int, String)], w :: [Bot (Int, String)]) ->
+          let v' = coerce v :: [(Int, String)]
+              w' = coerce w :: [(Int, String)]
+           in (isBottom <$> Strict.runWriterT (Strict.WriterT v' <|> Strict.WriterT w')) === (isBottom <$> v' ++ w'),
+      cps      = Prop $ \(v :: [Bot (Int, String)], w :: [Bot (Int, String)]) ->
+          let v' = coerce v :: [(Int, String)]
+              w' = coerce w :: [(Int, String)]
+           in (isBottom <$> CPS.runWriterT (CPS.writerT v' <|> CPS.writerT w')) === (isBottom <$> v' ++ w')
+    },
+
+  -- == Other type classes ==
+  runWriterProps "Foldable: foldMap" WriterProp {
+      -- NOTE: foldMap is lazy in both Lazy and Strict Writers due to the use of fst to pick the value.
+      lazy   = Prop $ \(v :: [Bot (Int, String)]) ->
+          let v' = coerce v :: [(Int, String)] in isLazyValue $ getSum $ foldMap (const (Sum (0 :: Int))) (Lazy.WriterT v'),
+      strict = Prop $ \(v :: [Bot (Int, String)]) ->
+          let v' = coerce v :: [(Int, String)] in isLazyValue $ getSum $ foldMap (const (Sum (0 :: Int))) (Strict.WriterT v'),
+      cps    = Unsupported
+  },
+  runWriterProps "contramap" WriterProp {
+      lazy   = Prop $ \(Bot (v :: (Int, String))) ->
+          let f = getOp $ Lazy.runWriterT $ contramap (+1) $ Lazy.WriterT (Op id) in isLazyValue $ f v,
+      strict = Prop $ \(Bot (v :: (Int, String))) ->
+          let f = getOp $ Strict.runWriterT $ contramap (+1) $ Strict.WriterT (Op id) in isStrictValue v $ f v,
+      cps    = Unsupported
+  }
+  ]
+
+strictLogTest :: [TestTree]
+strictLogTest = [
+  runWriterProps "runWriter" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isLazy (withBaseMonad m $ Lazy.runWriterT $ Lazy.writer ((), v)),
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isLazy (withBaseMonad m $ Strict.runWriterT $ Strict.writer ((), v)),
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isStrict v (withBaseMonad m $ CPS.runWriterT $ CPS.writer ((), v))
+  },
+  runWriterProps "mapWriter" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isLazy (withBaseMonad m $ Lazy.runWriterT $ Lazy.mapWriterT id $ Lazy.writer (0 :: Int, v)),
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isLazy (withBaseMonad m $ Strict.runWriterT $ Strict.mapWriterT id $ Strict.writer(0 :: Int, v)),
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isStrict v (withBaseMonad m $ CPS.runWriterT $ CPS.mapWriterT id $ CPS.writer (0 :: Int, v))
+  },
+  runWriterProps "listen" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isLazy (withBaseMonad m $ Lazy.runWriterT $ Lazy.listen $ Lazy.writer ((), v)),
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isLazy (withBaseMonad m $ Strict.runWriterT $ Strict.listen $ Strict.writer ((), v)),
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: Sum Int)) -> isStrict v (withBaseMonad m $ CPS.runWriterT $ CPS.listen $ CPS.writer ((), v))
+  },
+  runWriterProps "tell" WriterProp {
+      lazy =   Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isLazy (withBaseMonad m $ Lazy.runWriterT $ Lazy.tell v),
+      strict = Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isLazy (withBaseMonad m $ Strict.runWriterT $ Strict.tell v),
+      cps =    Prop $ \(m :: BaseMonad, Bot (v :: String)) -> isStrict v (withBaseMonad m $ CPS.runWriterT $ CPS.tell v)
+  }
+  ]
 
 -- | Strictness tests for the value (a, w) of Writers
 --
@@ -641,7 +771,7 @@ runTestMonadStack m cont = runReaderT rd 0
 const2 :: a -> b -> c -> a
 const2 = const . const
 
-test_pair_strictness_monad :: forall k writer w (m :: k) a b. (writer w m a -> b) -> Bool -> writer w m a -> Property
+test_pair_strictness_monad :: (writer w m a -> b) -> Bool -> writer w m a -> Property
 test_pair_strictness_monad runWriter expected writer = test_pair_strictness_IOBase expected $ evaluate (runWriter writer)
 
 test_pair_strictness_IO :: (writer w IO a -> IO b) -> Bool -> writer w IO a -> Property
@@ -652,3 +782,32 @@ test_pair_strictness_IOBase True v = assertExceptionIO @ErrorCall (const True) v
 test_pair_strictness_IOBase False v = monadicIO $ run $ do
   v' <- v
   v' `seq` return ()
+
+isStrictValue :: arg1 -> a -> Property
+isStrictValue x  = isStrict x . evaluate
+
+isLazyValue :: a -> Property
+isLazyValue = isLazy . evaluate
+
+-- Strictness in one argument:
+-- The result (normalized to IO) should be bottom whenever arg1 is bottom.
+isStrict :: arg1 -> IO a -> Property
+isStrict x  = shouldBeBottom (isBottom x)
+
+-- Strictness in two arguments:
+-- The result (normalized to IO) should be bottom whenever arg1 OR arg2 is bottom.
+isStrict2 :: arg1 -> arg2 -> IO a -> Property
+isStrict2 x y  = shouldBeBottom (isBottom x || isBottom y)
+
+isLazy :: IO a -> Property
+isLazy = shouldBeBottom False
+
+shouldBeBottom :: Bool -> IO a -> Property
+shouldBeBottom True result = assertExceptionIO isBottomError result
+  where
+    -- Check error message only i.e. prefix, ignoring stacktrace.
+    isBottomError :: ErrorCall -> Bool
+    isBottomError e = "<bottom>" `isPrefixOf` displayException e
+shouldBeBottom False result = monadicIO $ run $ do
+  v <- result
+  v `seq` return ()
