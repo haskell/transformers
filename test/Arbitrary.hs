@@ -16,6 +16,8 @@ module Arbitrary
   )
 where
 
+import           Control.Exception (evaluate)
+
 import           Data.Data
 import           Data.Functor.Identity (Identity (..))
 
@@ -28,7 +30,7 @@ bottom = error "<bottom>"
 -- | Arbitrary (Bot a) values may be bottom.
 --
 -- Borrowed from container tests: https://github.com/haskell/containers/
-newtype Bot a = Bot a
+newtype Bot a = Bot { unBot :: a }
 
 -- Lazy version of Identity.
 -- NOTE: Solo in Data.Tuple is not available for old GHC versions.
@@ -59,9 +61,9 @@ instance Arbitrary BaseMonad where
   arbitrary =
     elements
       [ LazyBaseMonad id,                         -- IO
-        StrictBaseMonad (return . runIdentity),   -- Identity
-        LazyBaseMonad (return . runLazyIdentity), -- LazyIdentity
-        LazyBaseMonad (\f -> return $ f ())       -- constant function () -> a
+        StrictBaseMonad (evaluate . runIdentity),   -- Identity
+        LazyBaseMonad (evaluate . runLazyIdentity), -- LazyIdentity
+        LazyBaseMonad (\f -> evaluate $ f ())       -- constant function () -> a
       ]
 
 instance Show BaseMonad where
