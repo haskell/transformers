@@ -12,6 +12,7 @@ module Arbitrary
     BaseMonad (..),
     isStrictMonad,
     F1 (..),
+    F1Bot(..),
     withBaseMonad,
   )
 where
@@ -90,6 +91,30 @@ newtype F1 a b = F1 {unF1 :: a -> b}
 
 instance (Typeable a, Typeable b) => Show (F1 a b) where
   show :: F1 a b -> String
+  show _ = a <> " -> " <> b
+    where
+      a = show $ typeRep (Proxy @a)
+      b = show $ typeRep (Proxy @b)
+
+-- | Arbitrary function which may bottom in the output.
+--
+-- To be precise, the function is either
+-- a) a valid arbitrary function i.e. never bottoms, or
+-- b) a constant function which always bottoms.
+--
+-- In particular, the Quickcheck builtin Func cannot be used for this, since
+-- Func a (Bot b) generates a function which may or may not bottom depending on the input.
+newtype F1Bot a b = F1Bot {unF1Bot :: a -> b}
+
+instance (CoArbitrary a, Arbitrary b) => Arbitrary (F1Bot a b) where
+  arbitrary = do
+    useBottomFunc <- arbitrary :: Gen Bool
+    if useBottomFunc
+       then return $ F1Bot $ const bottom
+       else F1Bot <$> (arbitrary :: Gen (a -> b))
+
+instance (Typeable a, Typeable b) => Show (F1Bot a b) where
+  show :: F1Bot a b -> String
   show _ = a <> " -> " <> b
     where
       a = show $ typeRep (Proxy @a)
