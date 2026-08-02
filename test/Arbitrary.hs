@@ -35,7 +35,7 @@ newtype Bot a = Bot { unBot :: a }
 
 -- Lazy version of Identity.
 -- NOTE: Solo in Data.Tuple is not available for old GHC versions.
-data LazyIdentity a = LazyIdentity {runLazyIdentity :: a}
+data LazyIdentity a = LazyIdentity { runLazyIdentity :: a }
   deriving (Functor)
 
 instance Applicative LazyIdentity where
@@ -61,7 +61,7 @@ isStrictMonad (StrictBaseMonad _) = True
 instance Arbitrary BaseMonad where
   arbitrary =
     elements
-      [ LazyBaseMonad id,                         -- IO
+      [ LazyBaseMonad id,                           -- IO
         StrictBaseMonad (evaluate . runIdentity),   -- Identity
         LazyBaseMonad (evaluate . runLazyIdentity), -- LazyIdentity
         LazyBaseMonad (\f -> evaluate $ f ())       -- constant function () -> a
@@ -85,8 +85,8 @@ instance Arbitrary a => Arbitrary (Bot a) where
         (4, Bot <$> arbitrary)
       ]
 
--- | Arbitrary function of 1 argument
-newtype F1 a b = F1 {unF1 :: a -> b}
+-- | Arbitrary function of one argument.
+newtype F1 a b = F1 { unF1 :: a -> b }
   deriving newtype (Arbitrary)
 
 instance (Typeable a, Typeable b) => Show (F1 a b) where
@@ -104,14 +104,15 @@ instance (Typeable a, Typeable b) => Show (F1 a b) where
 --
 -- In particular, the Quickcheck builtin Func cannot be used for this, since
 -- Func a (Bot b) generates a function which may or may not bottom depending on the input.
-newtype F1Bot a b = F1Bot {unF1Bot :: a -> b}
+newtype F1Bot a b = F1Bot { unF1Bot :: a -> b }
 
 instance (CoArbitrary a, Arbitrary b) => Arbitrary (F1Bot a b) where
   arbitrary = do
     useBottomFunc <- arbitrary :: Gen Bool
-    if useBottomFunc
-       then return $ F1Bot $ const bottom
-       else F1Bot <$> (arbitrary :: Gen (a -> b))
+    F1Bot <$>
+      if useBottomFunc
+        then return (const bottom)
+        else (arbitrary :: Gen (a -> b))
 
 instance (Typeable a, Typeable b) => Show (F1Bot a b) where
   show :: F1Bot a b -> String

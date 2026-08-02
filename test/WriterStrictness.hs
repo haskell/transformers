@@ -1,9 +1,4 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module WriterStrictness (test) where
 
@@ -30,7 +25,7 @@ import           Test.Tasty
 import           Test.Tasty.QuickCheck
 
 test :: IO ()
-test = defaultMain $ testGroup "Writer" strictSpineTest
+test = defaultMain $ testGroup "Writer" strictnessTest
 
 -- | Monoid choice
 --
@@ -60,12 +55,12 @@ type SumInt = Sum Int
 --
 --  Writer.CPS      strict in spine (a,w) and log w
 --
-strictSpineTest :: [TestTree]
-strictSpineTest = [
-  testGroup "writer" [
-      testProperty "Lazy"   $ \m (Bot (p :: (Int, SumInt))) -> isStrictIn p $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer p,
-      testProperty "Strict" $ \m (Bot (p :: (Int, SumInt))) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.writer p,
-      testProperty "CPS"    $ \m (p :: Bot (Int, Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.writer (unBotDeeper p)
+strictnessTest :: [TestTree]
+strictnessTest = [
+  testGroup "Strictness" [
+      testProperty "Lazy"   $ \m (p :: Bot ((), Bot SumInt)) -> isStrictIn p $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer (unBotDeeper p),
+      testProperty "Strict" $ \m (p :: Bot ((), Bot SumInt)) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.writer (unBotDeeper p),
+      testProperty "CPS"    $ \m (p :: Bot ((), Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.writer (unBotDeeper p)
   ],
 
   -- Lazy, Strict Writer    output of map is used directly without any intervention by the Writer itself
@@ -73,30 +68,30 @@ strictSpineTest = [
   --
   -- CPS Writer             output of map is evaluated in the log w
   testGroup "mapWriter" [
-      testProperty "Lazy" $ \m (f  :: F1Bot ((), SumInt) ((), SumInt)) ->
+      testProperty "Lazy"   $ \m (f :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
         let f' = unF1Bot f
             result = f' ((), mempty)
         in isStrictIn result $ withBaseMonad m $ Lazy.runWriterT $ Lazy.mapWriterT (f'<$>) $ pure (),
-      testProperty "Strict" $ \m (f  :: F1Bot ((), SumInt) ((), SumInt)) ->
+      testProperty "Strict" $ \m (f :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
         let f' = unF1Bot f
             result = f' ((), mempty)
         in isStrictIn result $ withBaseMonad m $ Strict.runWriterT $ Strict.mapWriterT (f'<$>) $ pure (),
-      testProperty "CPS" $ \m (f  :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
+      testProperty "CPS"    $ \m (f  :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
         let f' = coerce f :: ((), SumInt) -> ((), SumInt)
             result = f' ((), mempty)
         in isBiStrictIn result (snd result) $ withBaseMonad m $ CPS.runWriterT $ CPS.mapWriterT (f'<$>) $ pure ()
   ],
 
   testGroup "listen" [
-      testProperty "Lazy"   $ \m (Bot (p :: (Float, SumInt))) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.listen $ Lazy.WriterT $ return p,
-      testProperty "Strict" $ \m (Bot (p :: (Float, SumInt))) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.listen $ Strict.WriterT $ return p,
-      testProperty "CPS"    $ \m (p :: Bot (Float, Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.listen $ CPS.writer (unBotDeeper p)
+      testProperty "Lazy"   $ \m (p :: Bot ((), Bot SumInt)) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.listen $ Lazy.WriterT $ return (unBotDeeper p),
+      testProperty "Strict" $ \m (p :: Bot ((), Bot SumInt)) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.listen $ Strict.WriterT $ return (unBotDeeper p),
+      testProperty "CPS"    $ \m (p :: Bot ((), Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.listen $ CPS.writer (unBotDeeper p)
   ],
 
   testGroup "listens" [
-      testProperty "Lazy"   $ \m (Bot (p :: (Float, SumInt))) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.listens id $ Lazy.WriterT $ return p,
-      testProperty "Strict" $ \m (Bot (p :: (Float, SumInt))) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.listens id $ Strict.WriterT $ return p,
-      testProperty "CPS"    $ \m (p :: Bot (Float, Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.listens id $ CPS.writer (unBotDeeper p)
+      testProperty "Lazy"   $ \m (p :: Bot ((), Bot SumInt)) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.listens id $ Lazy.WriterT $ return (unBotDeeper p),
+      testProperty "Strict" $ \m (p :: Bot ((), Bot SumInt)) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.listens id $ Strict.WriterT $ return (unBotDeeper p),
+      testProperty "CPS"    $ \m (p :: Bot ((), Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ CPS.listens id $ CPS.writer (unBotDeeper p)
   ],
 
   testGroup "tell" [
@@ -113,62 +108,66 @@ strictSpineTest = [
   -- Lazy, Strict Writers are only concerned with 1.
   -- CPS Writer is strict in all.
   testGroup "censor" [
-      testProperty "Lazy"   $ \m (Bot (w :: SumInt)) (Bot (p :: ((), SumInt))) ->
-        isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.censor (<> w) $ Lazy.WriterT $ return p,
-      testProperty "Strict" $ \m (Bot (w :: SumInt)) (Bot (p :: ((), SumInt))) ->
-        isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.censor (<> w) $ Strict.WriterT $ return p,
-      testProperty "CPS"    $ \m (Bot (w :: SumInt)) (p :: Bot ((), Bot SumInt)) ->
-        isStrictDeeperInWith p w $ withBaseMonad m $ CPS.runWriterT $ CPS.censor (<> w) $ CPS.writer (unBotDeeper p)
+      testProperty "Lazy"   $ \m (f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
+        let f' = coerce f :: SumInt -> SumInt
+        in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.censor f' $ Lazy.WriterT $ return p,
+      testProperty "Strict" $ \m (f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
+        let f' = coerce f :: SumInt -> SumInt
+        in isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.censor f' $ Strict.WriterT $ return p,
+      testProperty "CPS"    $ \m (f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
+        let f' = coerce f :: SumInt -> SumInt
+            result = f' mempty
+        in isBiStrictIn p result $ withBaseMonad m $ CPS.runWriterT $ CPS.censor f' $ CPS.writer p
   ],
 
   -- See note on censor above.
   testGroup "pass" [
-      testProperty "Lazy"   $ \m (p :: Bot (((), F1 SumInt SumInt), SumInt)) ->
+      testProperty "Lazy"   $ \m (p :: Bot (((), F1Bot SumInt SumInt), SumInt)) ->
         let p' = coerce p :: (((), SumInt -> SumInt), SumInt)
         in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.pass $ Lazy.WriterT $ return p',
-      testProperty "Strict"   $ \m (p :: Bot (((), F1 SumInt SumInt), SumInt)) ->
+      testProperty "Strict" $ \m (p :: Bot (((), F1Bot SumInt SumInt), SumInt)) ->
         let p' = coerce p :: (((), SumInt -> SumInt), SumInt)
         in isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.pass $ Strict.WriterT $ return p',
-      testProperty "CPS"    $ \m (p :: Bot (((), F1Bot SumInt SumInt), Bot SumInt)) ->
+      testProperty "CPS"    $ \m (p :: Bot (((), F1Bot SumInt SumInt), SumInt)) ->
         let p' = coerce p :: (((), SumInt -> SumInt), SumInt)
-            v  = (snd $ fst p') mempty
-        in isStrictDeeperInWith p v $ withBaseMonad m $ CPS.runWriterT $ CPS.pass $ CPS.writer p'
+            result  = (snd $ fst p') mempty
+        in isBiStrictIn p result $ withBaseMonad m $ CPS.runWriterT $ CPS.pass $ CPS.writer p'
   ],
 
   -- == Functor/Applicative/Monad ==
   testGroup "Functor: fmap" [
-      testProperty "Lazy"    $ \m (Bot (p :: (Int, SumInt))) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ (+1) <$> Lazy.WriterT (return p),
-      testProperty "Strict"  $ \m (Bot (p :: (Int, SumInt))) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ (+1) <$> Strict.WriterT (return p),
+      testProperty "Lazy"    $ \m (p :: Bot (Int, Bot SumInt)) -> isLazy $ withBaseMonad m $ Lazy.runWriterT $ (+1) <$> Lazy.WriterT (return (unBotDeeper p)),
+      testProperty "Strict"  $ \m (p :: Bot (Int, Bot SumInt)) -> isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ (+1) <$> Strict.WriterT (return (unBotDeeper p)),
       testProperty "CPS"     $ \m (p :: Bot (Int, Bot SumInt)) -> isStrictDeeperIn p $ withBaseMonad m $ CPS.runWriterT $ (+1) <$> CPS.writer (unBotDeeper p)
     ],
 
   testGroup "Applicative: <*>" [
-      testProperty "Lazy"    $ \m (Bot (wf :: (F1 () (), SumInt))) (Bot (p :: ((), SumInt))) ->
+      testProperty "Lazy"    $ \m(wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
           let f' = coerce wf :: (() -> (), SumInt)
-         in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer f' <*> Lazy.writer p ,
-      testProperty "Strict"  $ \m(Bot (wf :: (F1 () (), SumInt))) (Bot (p :: ((), SumInt))) ->
+         in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer f' <*> Lazy.writer (unBotDeeper p),
+      testProperty "Strict"  $ \m(wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
           let f' = coerce wf :: (() -> (), SumInt)
-         in isBiStrictIn p wf $ withBaseMonad m $ Strict.runWriterT $ Strict.writer f' <*> Strict.writer p,
+         in isBiStrictIn p wf $ withBaseMonad m $ Strict.runWriterT $ Strict.writer f' <*> Strict.writer (unBotDeeper p),
       testProperty "CPS"     $ \m (wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
           let f' = coerce wf :: (() -> (), SumInt)
          in isBiStrictDeeperIn p wf $ withBaseMonad m $ CPS.runWriterT $ CPS.writer f' <*> CPS.writer (unBotDeeper p)
     ],
 
   testGroup "Applicative: liftA2" [
-      testProperty "Lazy"    $ \m (Bot (p :: (Int, SumInt))) (Bot (q :: (Int, SumInt))) ->
-          isLazy $ withBaseMonad m $ Lazy.runWriterT $ liftA2 (+) (Lazy.writer p) (Lazy.writer q),
-      testProperty "Strict"  $ \m (Bot (p :: (Int, SumInt))) (Bot (q :: (Int, SumInt))) ->
-          isBiStrictIn p q $ withBaseMonad m $ Strict.runWriterT $ liftA2 (+) (Strict.writer p) (Strict.writer q),
+      testProperty "Lazy"    $ \m (p :: Bot (Int, Bot SumInt)) (q :: Bot (Int, Bot SumInt)) ->
+          isLazy $ withBaseMonad m $ Lazy.runWriterT $ liftA2 (+) (Lazy.writer $ unBotDeeper p) (Lazy.writer $ unBotDeeper q),
+      testProperty "Strict"  $ \m (p :: Bot (Int, Bot SumInt)) (q :: Bot (Int, Bot SumInt)) ->
+          isBiStrictIn p q $ withBaseMonad m $ Strict.runWriterT $ liftA2 (+) (Strict.writer $ unBotDeeper p) (Strict.writer $ unBotDeeper q),
       testProperty "CPS"     $ \m (p :: Bot (Int, Bot SumInt)) (q :: Bot (Int, Bot SumInt)) ->
           isBiStrictDeeperIn p q $ withBaseMonad m $ CPS.runWriterT $ liftA2 (+) (CPS.writer $ unBotDeeper p) (CPS.writer $ unBotDeeper q)
     ],
 
   testGroup "Monad: >>=" [
-      testProperty "Lazy"        $ \m (Bot (p :: ((), SumInt))) (Bot (q :: (Int, SumInt))) ->
-          isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer p >>= const (Lazy.writer q),
-      testProperty "Strict"      $ \m (Bot (p :: ((), SumInt))) (Bot (q :: (Int, SumInt))) ->
-          isBiStrictIn p q $ withBaseMonad m $ Strict.runWriterT $ Strict.writer p >>= const (Strict.writer q),
-      testProperty "CPS"         $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot (Int, Bot SumInt)) ->
+      testProperty "Lazy"      $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
+          isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer (unBotDeeper p) >>= const (Lazy.writer (unBotDeeper q)),
+      testProperty "Strict"      $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
+          isBiStrictIn p q $ withBaseMonad m $ Strict.runWriterT $ Strict.writer (unBotDeeper p) >>= const (Strict.writer (unBotDeeper q)),
+      testProperty "CPS"         $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
           isBiStrictDeeperIn p q $ withBaseMonad m $ CPS.runWriterT $ CPS.writer (unBotDeeper p) >>= const (CPS.writer (unBotDeeper q))
     ],
 
@@ -318,8 +317,8 @@ isBiStrictIn x y  =
     . shouldBeBottom (bottomX || bottomY)
 
 shouldBeBottom :: Bool -> IO o -> Property
-shouldBeBottom expectBottom result = classify expectBottom bottomLabel $ 
-  if expectBottom 
+shouldBeBottom expectBottom result = classify expectBottom bottomLabel $
+  if expectBottom
     then assertExceptionIO isBottomError result
     else ioProperty $ do
       v <- result
@@ -350,10 +349,3 @@ isBiStrictDeeperIn p q  =
       bottomQ = isBottomDeeper q
    in label (bottomLabelFor "arg1" bottomP <> ", " <> bottomLabelFor "arg2" bottomQ)
      . shouldBeBottom (bottomP || bottomQ)
-
-isStrictDeeperInWith :: Bot (a, Bot w) -> arg1 -> IO o -> Property
-isStrictDeeperInWith p x  =
-  let bottomP = isBottomDeeper p
-      bottomX = isBottom x
-   in label (bottomLabelFor "arg1" bottomP <> ", " <> bottomLabelFor "arg2" bottomX)
-     . shouldBeBottom (bottomP || bottomX)
