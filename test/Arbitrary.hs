@@ -49,7 +49,7 @@ data BaseMonad
   = forall m. (Typeable m, Monad m) => LazyBaseMonad (forall a. m a -> IO a)
   | forall m. (Typeable m, Monad m) => StrictBaseMonad (forall a. m a -> IO a)
 
--- Use underlying Monad of a BaseMonad.
+-- Use the underlying Monad of a BaseMonad.
 withBaseMonad :: BaseMonad -> (forall m. (Monad m) => m a) -> IO a
 withBaseMonad (LazyBaseMonad v)   = v
 withBaseMonad (StrictBaseMonad v) = v
@@ -96,13 +96,13 @@ instance (Typeable a, Typeable b) => Show (F1 a b) where
       a = show $ typeRep (Proxy @a)
       b = show $ typeRep (Proxy @b)
 
--- | Arbitrary function which may bottom in the output.
+-- | Arbitrary function that may bottom in the output.
 --
 -- To be precise, the function is either
 -- a) a valid arbitrary function i.e. never bottoms, or
 -- b) a constant function which always bottoms.
 --
--- In particular, the Quickcheck builtin Func cannot be used for this, since
+-- In particular, the QuickCheck built-in Func cannot be used for this, since
 -- Func a (Bot b) generates a function which may or may not bottom depending on the input.
 newtype F1Bot a b = F1Bot { unF1Bot :: a -> b }
 

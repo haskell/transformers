@@ -27,16 +27,16 @@ import           Test.Tasty.QuickCheck
 test :: IO ()
 test = defaultMain $ testGroup "Writer" strictnessTest
 
--- | Monoid choice
+-- | NOTE: Monoid choice
 --
 -- For the test, we use a monoid that is strict in both arguments of mappend :: a -> a -> a
 --
 -- This is needed in particular to test a strictness property of the CPS writer, which
 -- is that it evaluates the log w strictly as it is accumulated.
 -- If mappend is lazy in an argument, then outwardly the result appears the same with or without evaluation
--- and hence cannot be validated.
+-- and hence cannot be used for validation, which will complicate the tests.
 -- e.g.
---   List mappend is only strict in the first argument:
+--   List mappend is strict only in the first argument:
 --     writer ((), _|_) >> writer ((), "a")      _|_
 --     writer ((), "a") >> writer ((), _|_)      ((), ('a':_|_))
 --
@@ -45,7 +45,7 @@ test = defaultMain $ testGroup "Writer" strictnessTest
 --     writer ((), _|_) >> writer ((), Sum 0)    _|_
 type SumInt = Sum Int
 
--- | Strictness test
+-- | NOTE: Strictness test
 --
 -- Each writer variation is strict in the following ways:
 --
@@ -100,13 +100,10 @@ strictnessTest = [
       testProperty "CPS"    $ \(m, Bot (w :: SumInt)) -> isStrictIn w $ withBaseMonad m $ CPS.runWriterT $ CPS.tell w
   ],
 
-  -- There are 3 levels of strictness to test:
-  -- 1) spine (a, w)
-  -- 2) log w
-  -- 3) log map w -> w
-  --
-  -- Lazy, Strict Writers are only concerned with 1.
-  -- CPS Writer is strict in all.
+  -- NOTE: strictness in the log w for censor (CPS only)
+  -- censor should be strict in the *final* value of the log w after applying the log censor (w -> w), 
+  -- not the initial value in the given writer.
+  -- Thus, for the tests below, a bottom log value is tested in the output of the log censor f, instead of the log w in the initial (a, w).
   testGroup "censor" [
       testProperty "Lazy"   $ \m (f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
         let f' = coerce f :: SumInt -> SumInt
@@ -324,25 +321,40 @@ shouldBeBottom expectBottom result = classify expectBottom bottomLabel $
       v <- result
       v `seq` return ()
   where
-    -- Check error message only i.e. prefix, ignoring stacktrace.
+    -- Check error message only i.e. the prefix, ignoring the stacktrace.
     isBottomError :: ErrorCall -> Bool
     isBottomError e = "<bottom>" `isPrefixOf` displayException e
 
--- unBot for CPS which is strict in both the spine (a,w) and log w.
+
+-- | NOTE: Deeper strictness assertions for CPS
+--
+-- CPS Writer is strict in multiple levels, namely:
+-- a) strict in the spine (a, w)
+-- b) strict in the log w
+--
+-- Thus, for CPS tests, we expect the output to bottom whenever the input is bottom in either of the above ways.
+-- The "Deeper" assertions below are a deeper analogue of the assertions above which only check up to WHNF of the argument.
+
+-- Deeper unBot for CPS. 
+-- See NOTE on deeper strictness above for details.
 unBotDeeper :: Bot (a, Bot w) -> (a, w)
 unBotDeeper = coerce
 
--- isBottom for CPS, which is strict in both the spine (a,w) and log w.
+-- Deeper isBottom for CPS. 
+-- See NOTE on deeper strictness above for details.
 isBottomDeeper :: Bot (a, Bot w) -> Bool
 isBottomDeeper (Bot p) = isBottom p || isBottom (snd p)
 
--- isStrictIn analogue for deeper (CPS).
+-- Deeper strictness in one argument.
+-- The result (normalized to IO) should be bottom whenever (a, w) or w is bottom.
 isStrictDeeperIn :: Bot (a, Bot w) -> IO o -> Property
 isStrictDeeperIn p =
   let bottomP = isBottomDeeper p
   in label (bottomLabelFor "arg" bottomP)
     . shouldBeBottom bottomP
 
+-- Deeper strictness in two arguments:
+-- The result (normalized to IO) should be bottom whenever (a, w), (a, w'), w or w' is bottom.
 isBiStrictDeeperIn :: Bot (a, Bot w) -> Bot (a', Bot w') -> IO o -> Property
 isBiStrictDeeperIn p q  =
   let bottomP = isBottomDeeper p
