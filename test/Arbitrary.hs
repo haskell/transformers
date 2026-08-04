@@ -12,7 +12,7 @@ module Arbitrary
     BaseMonad (..),
     isStrictMonad,
     F1 (..),
-    F1Bot(..),
+    F1Bot (..),
     withBaseMonad,
   )
 where

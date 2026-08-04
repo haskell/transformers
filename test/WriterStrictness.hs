@@ -76,7 +76,7 @@ strictnessTest = [
         let f' = unF1Bot f
             result = f' ((), mempty)
         in isStrictIn result $ withBaseMonad m $ Strict.runWriterT $ Strict.mapWriterT (f'<$>) $ pure (),
-      testProperty "CPS"    $ \m (f  :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
+      testProperty "CPS"    $ \m (f :: F1Bot ((), SumInt) ((), Bot SumInt)) ->
         let f' = coerce f :: ((), SumInt) -> ((), SumInt)
             result = f' ((), mempty)
         in isBiStrictIn result (snd result) $ withBaseMonad m $ CPS.runWriterT $ CPS.mapWriterT (f'<$>) $ pure ()
@@ -101,7 +101,7 @@ strictnessTest = [
   ],
 
   -- NOTE: strictness in the log w for censor (CPS only)
-  -- censor should be strict in the *final* value of the log w after applying the log censor (w -> w), 
+  -- censor should be strict in the *final* value of the log w after applying the log censor (w -> w),
   -- not the initial value in the given writer.
   -- Thus, for the tests below, a bottom log value is tested in the output of the log censor f, instead of the log w in the initial (a, w).
   testGroup "censor" [
@@ -127,7 +127,7 @@ strictnessTest = [
         in isStrictIn p $ withBaseMonad m $ Strict.runWriterT $ Strict.pass $ Strict.WriterT $ return p',
       testProperty "CPS"    $ \m (p :: Bot (((), F1Bot SumInt SumInt), SumInt)) ->
         let p' = coerce p :: (((), SumInt -> SumInt), SumInt)
-            result  = (snd $ fst p') mempty
+            result = (snd $ fst p') mempty
         in isBiStrictIn p result $ withBaseMonad m $ CPS.runWriterT $ CPS.pass $ CPS.writer p'
   ],
 
@@ -139,10 +139,10 @@ strictnessTest = [
     ],
 
   testGroup "Applicative: <*>" [
-      testProperty "Lazy"    $ \m(wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
+      testProperty "Lazy"    $ \m (wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
           let f' = coerce wf :: (() -> (), SumInt)
          in isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer f' <*> Lazy.writer (unBotDeeper p),
-      testProperty "Strict"  $ \m(wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
+      testProperty "Strict"  $ \m (wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
           let f' = coerce wf :: (() -> (), SumInt)
          in isBiStrictIn p wf $ withBaseMonad m $ Strict.runWriterT $ Strict.writer f' <*> Strict.writer (unBotDeeper p),
       testProperty "CPS"     $ \m (wf :: Bot (F1 () (), Bot SumInt)) (p :: Bot ((), Bot SumInt)) ->
@@ -160,11 +160,11 @@ strictnessTest = [
     ],
 
   testGroup "Monad: >>=" [
-      testProperty "Lazy"      $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
+      testProperty "Lazy"    $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
           isLazy $ withBaseMonad m $ Lazy.runWriterT $ Lazy.writer (unBotDeeper p) >>= const (Lazy.writer (unBotDeeper q)),
-      testProperty "Strict"      $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
+      testProperty "Strict"  $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
           isBiStrictIn p q $ withBaseMonad m $ Strict.runWriterT $ Strict.writer (unBotDeeper p) >>= const (Strict.writer (unBotDeeper q)),
-      testProperty "CPS"         $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
+      testProperty "CPS"     $ \m (p :: Bot ((), Bot SumInt)) (q :: Bot ((), Bot SumInt)) ->
           isBiStrictDeeperIn p q $ withBaseMonad m $ CPS.runWriterT $ CPS.writer (unBotDeeper p) >>= const (CPS.writer (unBotDeeper q))
     ],
 
@@ -354,7 +354,7 @@ isStrictDeeperIn p =
     . shouldBeBottom bottomP
 
 -- Deeper strictness in two arguments:
--- The result (normalized to IO) should be bottom whenever (a, w), (a, w'), w or w' is bottom.
+-- The result (normalized to IO) should be bottom whenever (a, w), (a', w'), w or w' is bottom.
 isBiStrictDeeperIn :: Bot (a, Bot w) -> Bot (a', Bot w') -> IO o -> Property
 isBiStrictDeeperIn p q  =
   let bottomP = isBottomDeeper p
