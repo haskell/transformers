@@ -10,6 +10,7 @@
 module Arbitrary
   ( Bot (..),
     BaseMonad (..),
+    LazyIdentity(..),
     isStrictMonad,
     F1 (..),
     F1Bot (..),
