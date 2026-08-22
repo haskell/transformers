@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -10,7 +9,6 @@
 module Arbitrary
   ( Bot (..),
     BaseMonad (..),
-    LazyIdentity(..),
     isStrictMonad,
     F1 (..),
     F1Bot (..),
@@ -22,6 +20,7 @@ import           Control.Exception (evaluate)
 
 import           Data.Data
 import           Data.Functor.Identity (Identity (..))
+import           Data.Tuple.Solo
 
 import           Test.ChasingBottoms.IsBottom (isBottom)
 import           Test.QuickCheck
@@ -32,19 +31,8 @@ bottom = error "<bottom>"
 -- | Arbitrary (Bot a) values may be bottom.
 --
 -- Borrowed from container tests: https://github.com/haskell/containers/
-newtype Bot a = Bot { unBot :: a }
-
--- Lazy version of Identity.
--- NOTE: Solo in Data.Tuple is not available for old GHC versions.
-data LazyIdentity a = LazyIdentity { runLazyIdentity :: a }
-  deriving (Functor)
-
-instance Applicative LazyIdentity where
-  pure = LazyIdentity
-  LazyIdentity f <*> LazyIdentity x = LazyIdentity $ f x
-
-instance Monad LazyIdentity where
-  LazyIdentity a >>= k = k a
+newtype Bot a
+  = Bot { unBot :: a }
 
 data BaseMonad
   = forall m. (Typeable m, Monad m) => LazyBaseMonad (forall a. m a -> IO a)
@@ -64,7 +52,7 @@ instance Arbitrary BaseMonad where
     elements
       [ LazyBaseMonad id,                           -- IO
         StrictBaseMonad (evaluate . runIdentity),   -- Identity
-        LazyBaseMonad (evaluate . runLazyIdentity), -- LazyIdentity
+        LazyBaseMonad (evaluate . getSolo),         -- Solo
         LazyBaseMonad (\f -> evaluate $ f ())       -- constant function () -> a
       ]
 
