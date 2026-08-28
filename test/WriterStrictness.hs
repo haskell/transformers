@@ -61,15 +61,16 @@ type SumInt = Sum Int
 --
 --
 -- = Choice of the underlying monad
---
 -- For the purpose of the test, we use a monad with the following properties:
--- a) strict in the monad bind i.e. a monad such that
+-- a) a monad such that the bind
 --
 --   x >>= k
 --
--- is strict in x if k is strict and lazy if k is lazy.
+-- preserves the strictness of k. In particular, if k is such that
 --
--- b) lazy as a data type.
+--    if   k _|_  = _|_    then also    (return _|_) >>= k   = _|_
+--
+-- b) lazy in its constructor
 --
 -- We employ Solo since it is a simple monad that has both properties.
 --
@@ -79,12 +80,16 @@ type SumInt = Sum Int
 -- is strict with the strict writer and lazy with the lazy writer.
 -- The map k of the CPS writer is further strict in the log w of (a, w) >>= k.
 -- Thus, in order to observe this effect in tests, we need to use a monad that preserves this property.
+-- Not all monads satsify this property. e.g. Maybe may short-circuit
+--
+--   runWriter (WriterT Nothing >>= undefined)    = Nothing
+--
+-- Using such a monad can complicate the tests.
 --
 -- However, for the data type itself, we use one that is lazy.
--- This is because otherwise, it becomes impossible to distinguish between a bottom of the monad itself or the computed value.
--- e.g there is no difference between `Identity undefined` and `undefined`
--- Writer function that require a Monad are typically the former, whereas functions that require only a Functor or an Applicative are the latter,
--- since the caller has no control over the outer data constructor.
+-- This is because otherwise, it becomes impossible to distinguish between a map k that bottoms in the monad itself or the computed value.
+-- e.g. there is no difference between `undefined :: Identity a` and `Identity undefined :: Identity a`
+-- The map k used by the strict writer bottoms in the whole monad.
 --
 strictnessTest :: [TestTree]
 strictnessTest = [
