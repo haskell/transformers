@@ -159,7 +159,7 @@ newtype StateT s m a = StateT { runStateT :: s -> m (a,s) }
 -- | Evaluate a state computation with the given initial state
 -- and return the final value, discarding the final state.
 --
--- * @'evalStateT' m s = 'liftM' 'fst' ('runStateT' m s)@
+-- * @'evalStateT' m s = 'fmap 'fst' ('runStateT' m s)@
 evalStateT :: Functor m => StateT s m a -> s -> m a
 evalStateT m s = (\(a, _) -> a) <$> runStateT m s
 {-# INLINE evalStateT #-}
@@ -167,7 +167,7 @@ evalStateT m s = (\(a, _) -> a) <$> runStateT m s
 -- | Evaluate a state computation with the given initial state
 -- and return the final state, discarding the final value.
 --
--- * @'execStateT' m s = 'liftM' 'snd' ('runStateT' m s)@
+-- * @'execStateT' m s = 'fmap 'snd' ('runStateT' m s)@
 execStateT :: Functor m => StateT s m a -> s -> m s
 execStateT m s = (\(_, s') -> s') <$> runStateT m s
 {-# INLINE execStateT #-}
