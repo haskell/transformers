@@ -5,6 +5,12 @@ description:
   Since test frameworks and tools also depend on transformers,
   the test needs to be a separate package from the library
   in order to avoid cyclic dependencies.
+  This is a long-standing known issue in Cabal: https://github.com/haskell/cabal/issues/1575
+
+  Other packages with workarounds: 
+  - ByteString
+  - Containers
+  - Persistent
 
 build-type: Simple
 
@@ -18,37 +24,9 @@ tested-with:
   ghc ==9.8
   mhs ==0.16
 
--- Copy of transformers package
-library
-  default-language: Haskell2010
-  build-depends: base >=4.14 && <5
-  hs-source-dirs: ..
-  exposed-modules:
-    Control.Applicative.Backwards
-    Control.Applicative.Lift
-    Control.Monad.Signatures
-    Control.Monad.Trans.Accum
-    Control.Monad.Trans.Class
-    Control.Monad.Trans.Compose
-    Control.Monad.Trans.Cont
-    Control.Monad.Trans.Except
-    Control.Monad.Trans.Identity
-    Control.Monad.Trans.Maybe
-    Control.Monad.Trans.Reader
-    Control.Monad.Trans.RWS
-    Control.Monad.Trans.RWS.CPS
-    Control.Monad.Trans.RWS.Lazy
-    Control.Monad.Trans.RWS.Strict
-    Control.Monad.Trans.Select
-    Control.Monad.Trans.State
-    Control.Monad.Trans.State.Lazy
-    Control.Monad.Trans.State.Strict
-    Control.Monad.Trans.Writer
-    Control.Monad.Trans.Writer.CPS
-    Control.Monad.Trans.Writer.Lazy
-    Control.Monad.Trans.Writer.Strict
-    Data.Functor.Constant
-    Data.Functor.Reverse
+library 
+  -- Empty placeholder library.
+  -- Cannot have a package with test-suite only.
 
 test-suite tests
   type: exitcode-stdio-1.0
@@ -56,7 +34,22 @@ test-suite tests
   main-is: main.hs
   default-language: Haskell2010
   other-modules:
+    Arbitrary
     ComposeT
+    WriterStrictness
   build-depends:
-    base >= 4.14 && <5,
+    base                >= 4.14 && <5,
+
+    -- Data.Solo is not available in older GHC versions
+    OneTuple            >= 0.4.3 && < 0.5,
+
+    -- tasty, QuickCheck, and ChasingBottoms depend on transformers.
+    -- These are built with the published version of transformers.
+    QuickCheck          >= 2.17 && < 3,
+    ChasingBottoms      >= 1.3.1.17 && < 2,
+    tasty               >= 1.5.4 && < 2,
+    tasty-quickcheck    >= 0.11 && < 1,
+
+    -- These are local packages.
+    transformers,  
     transformers-test
