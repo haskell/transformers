@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0.0
+* [#103](https://github.com/haskell/transformers/issues/103) Deprecate `Data.Functor.Constant`
+* [#114](https://github.com/haskell/transformers/issues/114) Raise supported GHC version floor
+* [#106](https://github.com/haskell/transformers/issues/106) `MonadPlus` instances now only require `Alternative`
+* [#121](https://github.com/haskell/transformers/issues/121) Add `ComposeT` to compose transformers together
+
 ## 0.6.3.0
 __Ross Paterson__ &lt;R.Paterson@city.ac.uk&gt; __Jan 2026__
 * Add `Control.Monad.Trans.Except.onE`
