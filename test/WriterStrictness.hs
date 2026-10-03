@@ -170,16 +170,12 @@ strictnessTest = [
   -- not the initial value in the given writer.
   -- Thus, for the tests below, a bottom log value is tested in the output of the log censor f, instead of the log w in the initial (a, w).
   testGroup "censor" [
-      testProperty "Lazy"   $ \(f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
-        let f' = coerce f :: SumInt -> SumInt
-        in isValueLazy getSolo $ Lazy.runWriterT $ Lazy.censor f' $ Lazy.WriterT $ MkSolo p,
-      testProperty "Strict" $ \(f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
-        let f' = coerce f :: SumInt -> SumInt
-        in isStrictIn p $ Strict.runWriterT $ Strict.censor f' $ Strict.WriterT $ MkSolo p,
-      testProperty "CPS"    $ \(f :: F1Bot SumInt SumInt) (Bot (p :: ((), SumInt))) ->
-        let f' = coerce f :: SumInt -> SumInt
-            result = f' mempty
-        in isBiStrictIn p result $ CPS.runWriterT $ CPS.censor f' $ CPS.writer @SumInt @Solo p
+      testProperty "Lazy"   $ \(F1Bot (f :: SumInt -> SumInt)) (Bot (p :: ((), SumInt))) ->
+        isValueLazy getSolo $ Lazy.runWriterT $ Lazy.censor f $ Lazy.WriterT $ MkSolo p,
+      testProperty "Strict" $ \(F1Bot (f :: SumInt -> SumInt)) (Bot (p :: ((), SumInt))) ->
+        isStrictIn p $ Strict.runWriterT $ Strict.censor f $ Strict.WriterT $ MkSolo p,
+      testProperty "CPS"    $ \(F1Bot (f :: SumInt -> SumInt)) (Bot (p :: ((), SumInt))) ->
+        isBiStrictIn p (f mempty) $ CPS.runWriterT $ CPS.censor f $ CPS.writer @SumInt @Solo p
   ],
 
   -- See note on censor above.
@@ -283,7 +279,7 @@ strictnessTest = [
   testGroup "Contravariant: contramap" [
       testProperty "Lazy"   $ \(Bot (p :: (Int, SumInt))) ->
         let f = getOp $ Lazy.runWriterT $ contramap (+1) $ Lazy.WriterT (Op id)
-        in shouldBeBottom False $ f p,
+        in isLazy $ f p,
       testProperty "Strict" $ \(Bot (p :: (Int, SumInt))) ->
         let f = getOp $ Strict.runWriterT $ contramap (+1) $ Strict.WriterT (Op id)
         in isStrictIn p $ f p
@@ -304,38 +300,39 @@ strictnessTest = [
   testGroup "combination" [
      testProperty "Lazy" $
        \ m
-         (f :: F1Bot (Int, SumInt) (Int, SumInt))
+         (f :: F1Bot (Int, SumInt) (Int, Bot SumInt))
          (Bot (r :: SumInt))
          (Bot (s :: SumInt))
-         (Bot (t :: (Int, SumInt)))
-         (Bot (u :: (Int, SumInt)))
-         (Bot (v :: (Int, SumInt))) ->
-           shouldBeBottomIO False $ withBaseMonad m $ Lazy.runWriterT $ do
-             a <- Lazy.WriterT (return t)
-             (b, x) <- Lazy.listen $ Lazy.WriterT $ return u
+         (t :: Bot (Int, Bot SumInt))
+         (u :: Bot (Int, Bot SumInt))
+         (v :: Bot (Int, Bot SumInt)) ->
+           let
+             f' = coerce f :: (Int, SumInt) -> (Int, SumInt)
+            in shouldBeBottomIO False $ withBaseMonad m $ Lazy.runWriterT $ do
+             a <- Lazy.WriterT $ return (unBotDeeper t)
+             (b, x) <- Lazy.listen $ Lazy.WriterT $ return (unBotDeeper u)
              Lazy.tell $ s <> x
-             c <- Lazy.censor (<>r) $ Lazy.WriterT $ return v
-             d <- Lazy.mapWriterT (unF1Bot f<$>) $ pure 0
-
+             c <- Lazy.censor (<>r) $ Lazy.WriterT $ return (unBotDeeper v)
+             d <- Lazy.mapWriterT (f'<$>) $ pure 0
              return $ a + b + c + d,
 
      testProperty "Strict" $
        \ m
-         (f :: F1Bot (Int, SumInt) (Int, SumInt))
+         (f :: F1Bot (Int, SumInt) (Int, Bot SumInt))
          (Bot (r :: SumInt))
          (Bot (s :: SumInt))
-         (Bot (t :: (Int, SumInt)))
-         (Bot (u :: (Int, SumInt)))
-         (Bot (v :: (Int, SumInt))) ->
+         (t :: Bot (Int, Bot SumInt))
+         (u :: Bot (Int, Bot SumInt))
+         (v :: Bot (Int, Bot SumInt)) ->
            let
-             f' = unF1Bot f
+             f' = coerce f :: (Int, SumInt) -> (Int, SumInt)
              expected = isBottom t || isBottom u || isBottom v
               || isBottom (f' (0, mempty))
            in shouldBeBottomIO expected $ withBaseMonad m $ Strict.runWriterT $ do
-             a <- Strict.WriterT (return t)
-             (b, x) <- Strict.listen $ Strict.WriterT $ return u
+             a <- Strict.WriterT (return $ unBotDeeper t)
+             (b, x) <- Strict.listen $ Strict.WriterT $ return (unBotDeeper u)
              Strict.tell $ s <> x
-             c <- Strict.censor (<> r) $ Strict.WriterT $ return v
+             c <- Strict.censor (<> r) $ Strict.WriterT $ return (unBotDeeper v)
              d <- Strict.mapWriterT (f'<$>) $ pure 0
              return $ a + b + c + d,
 
