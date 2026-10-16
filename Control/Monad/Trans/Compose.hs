@@ -31,7 +31,6 @@ import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Zip (MonadZip)
 import Data.Data (Data)
 import Data.Functor.Classes (Eq1, Ord1)
-import Data.Functor.Compose (Compose)
 import Data.Functor.Contravariant (Contravariant)
 import Data.Kind (Type)
 #ifdef __GLASGOW_HASKELL__

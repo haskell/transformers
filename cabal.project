@@ -6,3 +6,11 @@ packages:
 program-options
   ghc-options:
     -Wall -Wredundant-constraints -Werror -Wwarn=unused-imports
+
+tests: True
+
+-- borrowed from containers
+-- Disregard bounds on transformers for all packages.
+-- This allows test dependencies to build (and hopefully work) on CI, even if
+-- the latest transformers version is not yet marked as supported in their bounds.
+allow-newer: all:transformers

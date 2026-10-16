@@ -1,6 +1,7 @@
+cabal-version: 3.0
 name: transformers
-version: 0.6.3.0
-license: BSD3
+version: 0.7.0.0
+license: BSD-3-Clause
 license-file: LICENSE
 author: Andy Gill, Ross Paterson
 maintainer: Ross Paterson <R.Paterson@city.ac.uk>, Steven Shuck <stevenjshuck@gmail.com>, Benjamin McRae <b.mcrae@outlook.com>
@@ -38,7 +39,6 @@ extra-doc-files:
   images/bind-ReaderT.svg
   images/bind-WriterT.svg
 
-cabal-version: 1.18
 tested-with:
   ghc ==8.10
   ghc ==9.10
