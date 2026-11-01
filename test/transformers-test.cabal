@@ -36,6 +36,8 @@ test-suite tests
   other-modules:
     Arbitrary
     ComposeT
+    StateStrictness
+    StrictnessCheck
     WriterStrictness
   build-depends:
     base                >= 4.14 && <5,

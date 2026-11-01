@@ -7,8 +7,6 @@ module WriterStrictness (test) where
 import           Arbitrary
 
 import           Control.Applicative
-import           Control.Exception (ErrorCall (..))
-import           Control.Exception.Base (displayException)
 import           Control.Monad.Fix
 import qualified Control.Monad.Trans.Writer.CPS as CPS
 import qualified Control.Monad.Trans.Writer.Lazy as Lazy
@@ -18,18 +16,18 @@ import           Control.Monad.Zip
 import           Data.Coerce
 import           Data.Functor.Contravariant
 import           Data.Functor.Identity
-import           Data.List (isPrefixOf)
 import           Data.Monoid
 import           Data.Tuple.Solo
 
+import           StrictnessCheck
+
 import           Test.ChasingBottoms.IsBottom (isBottom)
 import           Test.QuickCheck
-import           Test.QuickCheck.Monadic (assertExceptionIO)
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 
-test :: IO ()
-test = defaultMain $ testGroup "Writer" strictnessTest
+test :: TestTree
+test = testGroup "Writer" strictnessTest
 
 -- | NOTE: Monoid choice
 --
@@ -70,9 +68,14 @@ type SumInt = Sum Int
 --
 --    if   k _|_  = _|_    then also    (return _|_) >>= k   = _|_
 --
--- b) lazy in its constructor
+-- b) does not short-circuit in the bind
+-- e.g. Maybe short-circuits
 --
--- We employ Solo since it is a simple monad that has both properties.
+--   Nothing >>= _|_     = Nothing
+--
+-- c) lazy in its constructor
+--
+-- Considering the above, we employ Solo since it is a simple monad that has both properties.
 --
 -- The reasoning is as follows.
 -- The distinguishing feature of the strict writer is that it is strict in the sequencing of computations.
@@ -80,11 +83,9 @@ type SumInt = Sum Int
 -- is strict with the strict writer and lazy with the lazy writer.
 -- The map k of the CPS writer is further strict in the log w of (a, w) >>= k.
 -- Thus, in order to observe this effect in tests, we need to use a monad that preserves this property.
--- Not all monads satsify this property. e.g. Maybe may short-circuit
 --
---   runWriter (WriterT Nothing >>= undefined)    = Nothing
---
--- Using such a monad can complicate the tests.
+-- Short-circuiting is a problem since it also breaks the preservation of strictness, as seen in the Maybe example.
+-- Thus, using such a monad will also complicate the tests.
 --
 -- However, for the data type itself, we use one that is lazy.
 -- This is because otherwise, it becomes impossible to distinguish between a map k that bottoms in the monad itself or the computed value.
@@ -359,59 +360,6 @@ strictnessTest = [
     ]
   ]
 
-bottomLabel :: String
-bottomLabel = "_|_"
-
-notBottomLabel :: String
-notBottomLabel = "Not _|_"
-
-bottomLabelFor :: String -> Bool -> String
-bottomLabelFor s x = s <> ": " <> (if x then bottomLabel else notBottomLabel)
-
--- Never bottom
-isLazy :: a -> Property
-isLazy = shouldBeBottom False
-
--- Never bottom not just in the outer constructor but in the inner value.
--- This function ensures that we do not accidentally check only the outer constructor.
-isValueLazy :: (m a -> a) -> m a -> Property
-isValueLazy unWrap = shouldBeBottom False . unWrap
-
--- Strictness in one argument:
--- The result should be bottom whenever arg1 is bottom.
-isStrictIn :: arg1 -> a -> Property
-isStrictIn x  =
-  let bottomX = isBottom x
-  in label (bottomLabelFor "arg" bottomX)
-    . shouldBeBottom bottomX
-
--- Strictness in two arguments:
--- The result (normalized to IO) should be bottom whenever arg1 OR arg2 is bottom.
-isBiStrictIn :: arg1 -> arg2 -> o -> Property
-isBiStrictIn x y  =
-    let bottomX = isBottom x
-        bottomY = isBottom y
-   in label (bottomLabelFor "arg1" bottomX <> ", " <> bottomLabelFor "arg2" bottomY)
-    . shouldBeBottom (bottomX || bottomY)
-
-shouldBeBottom :: Bool -> o -> Property
-shouldBeBottom expectBottom result = classify expectBottom bottomLabel $
-  isBottom result === expectBottom
-
-shouldBeBottomIO :: Bool -> IO o -> Property
-shouldBeBottomIO expectBottom result = classify expectBottom bottomLabel $
-  if expectBottom
-    -- NOTE: TODO explain why assertExceptionIO is needed here
-    then assertExceptionIO isBottomError result
-    else ioProperty $ do
-      v <- result
-      v `seq` return ()
-  where
-    -- Check error message only i.e. the prefix, ignoring the stacktrace.
-    isBottomError :: ErrorCall -> Bool
-    isBottomError e = "<bottom>" `isPrefixOf` displayException e
-
-
 -- | NOTE: Deeper strictness assertions for CPS
 --
 -- CPS Writer is strict in multiple levels, namely:
@@ -419,7 +367,7 @@ shouldBeBottomIO expectBottom result = classify expectBottom bottomLabel $
 -- b) strict in the log w
 --
 -- Thus, for CPS tests, we expect the output to bottom whenever the input is bottom in either of the above ways.
--- The "Deeper" assertions below are a deeper analogue of the assertions above which only check up to WHNF of the argument.
+-- The "Deeper" assertions below are a deeper analogue of the strictness assertions which only check up to WHNF of the argument.
 
 -- Deeper unBot for CPS.
 -- See NOTE on deeper strictness above for details.
