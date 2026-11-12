@@ -32,6 +32,7 @@ import GHC.Generics
 import Prelude hiding (foldr, foldr1, foldl, foldl1, null, length)
 import Control.Applicative
 import Data.Foldable
+import Control.Monad.Fix
 
 -- | The same functor, but with an 'Applicative' instance that performs
 -- actions in the reverse order.
@@ -121,3 +122,9 @@ instance (Traversable f) => Traversable (Backwards f) where
 instance (Contravariant f) => Contravariant (Backwards f) where
     contramap f = Backwards . contramap f . forwards
     {-# INLINE contramap #-}
+
+instance MonadFix f => Monad (Backwards f) where
+    Backwards a >>= k = Backwards (fst <$> mfix (\ ba -> liftA2 (,) (forwards (k (snd ba))) a))
+    {-# INLINE (>>=) #-}
+    (>>) = (*>)
+    {-# INLINE (>>) #-}
